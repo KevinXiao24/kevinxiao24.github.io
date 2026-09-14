@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1d4ed8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="我的路书 · 自驾旅行行程合集。贵州自驾 13 天 12 晚（2026.9.25-10.7，昆明出发）已收录。">
+<title>我的路书 · 自驾旅行行程合集</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --panel:#ffffff; --line:#e3e8ef; --text:#1f2937; --sub:#6b7280;
+    --accent:#1d4ed8; --accent-soft:#eef2ff; --muted:#94a3b8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;}
+  a{color:inherit;}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 0;}
+
+  /* ===== 顶部 hero ===== */
+  .hero{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line);}
+  .hero h1{font-size:26px;margin:0;letter-spacing:.5px;}
+  .hero .sub{font-size:13px;color:var(--sub);margin-top:6px;}
+  .hero .ver{margin-left:auto;align-self:center;background:#fef3c7;color:#92400e;
+    font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .lead{font-size:13.5px;color:var(--sub);line-height:1.7;margin:16px 0 22px;}
+
+  /* ===== 卡片网格 ===== */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;padding-bottom:32px;}
+  .card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;
+    transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;}
+  .card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(15,23,42,.10);border-color:#c7d2fe;}
+  .card .banner{display:block;width:100%;height:150px;background:#eef2ff;}
+  .card .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1 1 auto;}
+  .card h2{font-size:17px;margin:0;}
+  .card .meta{font-size:12px;color:var(--sub);}
+  .card .desc{font-size:12.5px;color:#475569;line-height:1.6;margin:0;}
+  .card .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;}
+  .tag{font-size:11px;background:var(--accent-soft);color:var(--accent);border-radius:5px;padding:2px 7px;font-weight:600;}
+  .tag.free{background:#ecfdf5;color:#047857;}
+  .tag.hot{background:#fffbeb;color:#b45309;}
+  .enter{margin-top:auto;align-self:flex-start;font-size:13px;font-weight:700;color:var(--accent);
+    border:1px solid #c7d2fe;background:var(--accent-soft);border-radius:20px;padding:6px 14px;}
+  .card:hover .enter{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  /* 占位卡（未发布） */
+  .card.soon{cursor:default;opacity:.92;}
+  .card.soon:hover{transform:none;box-shadow:none;border-color:var(--line);}
+  .card.soon .banner{background:#f1f5f9;display:flex;align-items:center;justify-content:center;}
+  .card.soon h2{color:var(--muted);}
+  .soonBadge{font-size:12px;color:var(--muted);border:1px dashed #cbd5e1;border-radius:20px;padding:6px 14px;}
+
+  /* ===== 页脚 ===== */
+  .pageFoot{text-align:center;font-size:11px;color:#94a3b8;padding:14px 12px 22px;line-height:1.7;border-top:1px solid var(--line);margin-top:8px;}
+  .pageFoot a{color:#64748b;text-decoration:none;border-bottom:1px dotted #cbd5e1;}
+  .pageFoot a:hover{color:var(--accent);}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>我的路书</h1>
+        <div class="sub">自驾旅行行程合集 · 把每一次出发整理成一本可分享的路书</div>
+      </div>
+      <span class="ver">v2.0.0</span>
+    </div>
+
+    <p class="lead">
+      这里收录我走过的自驾行程：路线地图、每日里程与海拔落差、景点门票与预约提醒，全部整理成一本本路书。
+      点开任意一本即可查看完整行程。
+    </p>
+
+    <div class="grid">
+
+      <!-- ===== 贵州自驾 13 天 12 晚 ===== -->
+      <a class="card" href="guizhou/">
+        <svg class="banner" viewBox="0 0 680 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="贵州 13 天路线示意图">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#e0e7ff"/>
+              <stop offset="1" stop-color="#f5f7fa"/>
+            </linearGradient>
+          </defs>
+          <rect width="680" height="150" fill="url(#sky)"/>
+          <!-- 远山剪影 -->
+          <path d="M0,150 L0,108 L120,72 L240,108 L360,70 L500,110 L620,80 L680,104 L680,150 Z" fill="#c7d2fe" opacity="0.45"/>
+          <path d="M0,150 L0,128 L160,100 L320,130 L480,98 L640,128 L680,118 L680,150 Z" fill="#a5b4fc" opacity="0.40"/>
+          <!-- 13 天路线 -->
+          <polyline points="40,110 88,86 136,100 184,76 232,96 280,72 328,92 376,74 424,98 472,78 520,100 568,80 616,104"
+            fill="none" stroke="#1e293b" stroke-width="2.5" stroke-opacity="0.55" stroke-linejoin="round" stroke-linecap="round"/>
+          <g>
+            <circle cx="40"  cy="110" r="6" fill="#1d4ed8"/>
+            <circle cx="88"  cy="86"  r="6" fill="#0891b2"/>
+            <circle cx="136" cy="100" r="6" fill="#0e7490"/>
+            <circle cx="184" cy="76"  r="6" fill="#059669"/>
+            <circle cx="232" cy="96"  r="6" fill="#16a34a"/>
+            <circle cx="280" cy="72"  r="6" fill="#65a30d"/>
+            <circle cx="328" cy="92"  r="6" fill="#ca8a04"/>
+            <circle cx="376" cy="74"  r="6" fill="#ea580c"/>
+            <circle cx="424" cy="98"  r="6" fill="#dc2626"/>
+            <circle cx="472" cy="78"  r="6" fill="#db2777"/>
+            <circle cx="520" cy="100" r="6" fill="#9333ea"/>
+            <circle cx="568" cy="80"  r="6" fill="#4f46e5"/>
+            <circle cx="616" cy="104" r="6" fill="#0d9488"/>
+          </g>
+          <text x="40" y="130" font-size="11" fill="#475569" font-family="sans-serif">昆明</text>
+          <text x="616" y="128" font-size="11" fill="#475569" text-anchor="end" font-family="sans-serif">回昆明</text>
+        </svg>
+        <div class="body">
+          <h2>贵州自驾 13 天 12 晚</h2>
+          <div class="meta">2026.9.25（周五·中秋）— 10.7（周三）｜ 昆明出发 · 顺时针大环线</div>
+          <p class="desc">黔西南 → 黔中 → 黔南 → 黔东南 → 黔东 → 黔北 → 回昆明，全程约 2,960 km。含每日行车路线、海拔落差、门票预约提醒。</p>
+          <div class="tags">
+            <span class="tag">13 天 12 晚</span>
+            <span class="tag">约 2,960 km</span>
+            <span class="tag free">高速免费 10/1-10/7</span>
+            <span class="tag hot">梵净山须抢票</span>
+          </div>
+          <span class="enter">查看路书 →</span>
+        </div>
+      </a>
+
+      <!-- ===== 占位：筹备中 ===== -->
+      <div class="card soon">
+        <div class="banner">
+          <span class="soonBadge">更多路书筹备中…</span>
+        </div>
+        <div class="body">
+          <h2>下一段旅程</h2>
+          <div class="meta">计划加入：川西环线 / 滇南热带 / 沿海自驾 …</div>
+          <p class="desc">把每一趟自驾都整理成一本路书，慢慢攒出一个属于我的路书库。</p>
+          <span class="enter" style="color:var(--muted);background:#f1f5f9;border-color:#e2e8f0;">敬请期待</span>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="pageFoot">
+      路书门户 <b>v2.0.0</b> · © 2026 Kevin · 地图数据 © <a href="https://lbs.qq.com" target="_blank" rel="noopener">腾讯地图</a><br>
+      本门户下的路书均为行程示意，实际出行请以导航软件为准
+    </footer>
+  </div>
+</body>
+</html>
