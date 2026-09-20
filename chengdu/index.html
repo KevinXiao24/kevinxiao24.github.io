@@ -191,12 +191,17 @@
     a[href]:after{content:"";}
   }
   .printHead{display:none;font-size:11px;color:#6b7280;margin-top:4px;}
+  /* 返回门户通用导航按钮（真实超链接跳门户根 /，禁用 history.back） */
+  .back-portal{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:9px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;text-decoration:none;box-shadow:0 2px 8px rgba(37,99,235,.30);transition:background .15s ease,transform .15s ease;}
+  .back-portal:hover{background:#1746c4;transform:translateY(-1px);}
+  .back-portal .arw{font-size:16px;line-height:1;}
 </style>
 <script src="https://map.qq.com/api/gljs?v=1.exp&libraries=service&key=Q3JBZ-F236N-KVDFE-SOAQ6-HEPVQ-YNFJI"></script>
 </head>
 <body data-page-node-id="B7QIgVqA3Ssmfdxg9SHpFU">
 <div id="app" data-view="list" data-page-node-id="9b5fsxYevHueZAX28kQpl8">
   <header data-page-node-id="GcE0AAd4JSiZDdkhC9szYs">
+    <a class="back-portal" href="/"><span class="arw">←</span>门户</a>
     <div data-page-node-id="hqumGrh1AX7KTJFsbrfGfn">
       <h1 data-page-node-id="VvK1EzvfclaNfQQOgH4nKI">成都市内游 6 天 5 晚 · 昆明出发</h1>
       <div class="sub" data-page-node-id="bFCrSOAjNJobY12HGlCuqb">2023.9.30（周六）— 10.5（周四）｜ 昆明→成都·市内深度游：川大/都江堰 · 天府广场/太古里/宽窄巷子 · 熊猫基地/武侯祠 · 龙泉山 · 返昆</div>
@@ -246,7 +251,7 @@
 </div>
 
 <footer class="pageFoot">
-  <span style="background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:3px;font-weight:600;font-size:10px;margin-right:6px;">v1.0.0</span>
+  <span style="background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:3px;font-weight:600;font-size:10px;margin-right:6px;">v1.0.1</span>
   底图数据 © <a href="https://lbs.qq.com" target="_blank" rel="noopener">腾讯地图</a> · 本图为行程示意，实际出行请以导航软件为准 · <a href="javascript:window.print()">打印 / 另存为 PDF</a>
 </footer>
 
@@ -422,7 +427,7 @@ var TIPS_HTML = `
 /* ============ 浮动调试条 ============ */
 (function(){
   var d = document.createElement('div'); d.id = 'dbg'; d.innerHTML =
-    '<span class="v">v1.0.0</span>mapWrap: <b id="d-wh">-</b><br>' +
+    '<span class="v">v1.0.1</span>mapWrap: <b id="d-wh">-</b><br>' +
     'center: <b id="d-ct">-</b><br>' +
     'zoom: <b id="d-zo">-</b> · activeDay: <b id="d-ad">-</b> · realRoutes: <b id="d-rr">-</b>';
   document.body.appendChild(d);
