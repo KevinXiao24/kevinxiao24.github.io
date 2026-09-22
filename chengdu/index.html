@@ -200,7 +200,7 @@
   #map div[style*="background-color"]{background:transparent !important;padding:0 !important;box-shadow:none !important;border-radius:0 !important;text-align:left !important;}
   #map div[style*="rotate(45deg)"]{display:none !important;}
   #map svg[style*="fill:#aaa"]{fill:#cfcfcf !important;}
-  #map div[style*="background:#333333"]{padding:22px 28px 9px 12px !important;white-space:normal !important;}
+  #map .rb-popup{background:#333333 !important;padding:22px 28px 9px 12px !important;white-space:normal !important;border:1px solid #3a3a3a !important;border-radius:8px !important;box-shadow:0 4px 14px rgba(0,0,0,.12) !important;font-size:12px !important;max-width:250px !important;line-height:1.6 !important;color:#e6e6e6 !important;}
 </style>
 <script src="https://map.qq.com/api/gljs?v=1.exp&libraries=service&key=Q3JBZ-F236N-KVDFE-SOAQ6-HEPVQ-YNFJI"></script>
 </head>
@@ -257,7 +257,7 @@
 </div>
 
 <footer class="pageFoot">
-  <span style="background:#fef3c7;color:#fbbf24;padding:1px 6px;border-radius:3px;font-weight:600;font-size:10px;margin-right:6px;">v1.1.1</span>
+  <span style="background:#fef3c7;color:#fbbf24;padding:1px 6px;border-radius:3px;font-weight:600;font-size:10px;margin-right:6px;">v1.1.2</span>
   底图数据 © <a href="https://lbs.qq.com" target="_blank" rel="noopener">腾讯地图</a> · 本图为行程示意，实际出行请以导航软件为准 · <a href="javascript:window.print()">打印 / 另存为 PDF</a>
 </footer>
 
@@ -433,7 +433,7 @@ var TIPS_HTML = `
 /* ============ 浮动调试条 ============ */
 (function(){
   var d = document.createElement('div'); d.id = 'dbg'; d.innerHTML =
-    '<span class="v">v1.1.1</span>mapWrap: <b id="d-wh">-</b><br>' +
+    '<span class="v">v1.1.2</span>mapWrap: <b id="d-wh">-</b><br>' +
     'center: <b id="d-ct">-</b><br>' +
     'zoom: <b id="d-zo">-</b> · activeDay: <b id="d-ad">-</b> · realRoutes: <b id="d-rr">-</b>';
   document.body.appendChild(d);
@@ -746,7 +746,7 @@ function focusDay(n, fromMap){
     var c = COLORS[n-1];
     infoWin.setPosition(L(d.to));
     infoWin.setContent(
-      '<div style="background:#333333;border-radius:8px;padding:9px 12px;border:1px solid #3a3a3a;' +
+      '<div class="rb-popup" style="background:#333333;border-radius:8px;padding:9px 12px;border:1px solid #3a3a3a;' +
       'box-shadow:0 4px 14px rgba(0,0,0,.12);font-size:12px;max-width:250px;line-height:1.6">' +
       '<div style="font-weight:700;font-size:13px;color:'+c+'">Day '+n+' · '+d.date+' '+d.week+'</div>' +
       '<div style="margin:3px 0 5px;font-weight:600">'+d.title+'</div>' +
