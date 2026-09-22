@@ -195,6 +195,12 @@
   .back-portal{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:800;color:var(--accent);border:1px solid #4a3a1a;background:transparent;border-radius:20px;padding:6px 14px;text-decoration:none;transition:background .15s ease,color .15s ease,border-color .15s ease;}
   .back-portal:hover{background:var(--accent);color:#1a1a1a;border-color:var(--accent);}
   .back-portal .arw{font-size:16px;line-height:1;}
+
+  /* PC 端 Tencent InfoWindow 深色化：覆盖默认白底气泡外壳，统一暗黑风 */
+  #map div[style*="background-color"]{background:transparent !important;padding:0 !important;box-shadow:none !important;border-radius:0 !important;text-align:left !important;}
+  #map div[style*="rotate(45deg)"]{display:none !important;}
+  #map svg[style*="fill:#aaa"]{fill:#cfcfcf !important;}
+  #map div[style*="background:#333333"]{padding:22px 28px 9px 12px !important;white-space:normal !important;}
 </style>
 <script src="https://map.qq.com/api/gljs?v=1.exp&libraries=service&key=Q3JBZ-F236N-KVDFE-SOAQ6-HEPVQ-YNFJI"></script>
 </head>
@@ -251,7 +257,7 @@
 </div>
 
 <footer class="pageFoot">
-  <span style="background:#fef3c7;color:#fbbf24;padding:1px 6px;border-radius:3px;font-weight:600;font-size:10px;margin-right:6px;">v1.1.0</span>
+  <span style="background:#fef3c7;color:#fbbf24;padding:1px 6px;border-radius:3px;font-weight:600;font-size:10px;margin-right:6px;">v1.1.1</span>
   底图数据 © <a href="https://lbs.qq.com" target="_blank" rel="noopener">腾讯地图</a> · 本图为行程示意，实际出行请以导航软件为准 · <a href="javascript:window.print()">打印 / 另存为 PDF</a>
 </footer>
 
@@ -522,7 +528,7 @@ var TIPS_HTML = `
 /* ============ 浮动调试条 ============ */
 (function(){
   var d = document.createElement('div'); d.id = 'dbg'; d.innerHTML =
-    '<span class="v">v1.1.0</span>mapWrap: <b id="d-wh">-</b><br>' +
+    '<span class="v">v1.1.1</span>mapWrap: <b id="d-wh">-</b><br>' +
     'center: <b id="d-ct">-</b><br>' +
     'zoom: <b id="d-zo">-</b> · activeDay: <b id="d-ad">-</b> · realRoutes: <b id="d-rr">-</b>';
   document.body.appendChild(d);
