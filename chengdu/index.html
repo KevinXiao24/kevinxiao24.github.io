@@ -196,11 +196,6 @@
   .back-portal:hover{background:var(--accent);color:#1a1a1a;border-color:var(--accent);}
   .back-portal .arw{font-size:16px;line-height:1;}
 
-  /* PC 端 Tencent InfoWindow 深色化：覆盖默认白底气泡外壳，统一暗黑风 */
-  #map div[style*="background-color"]{background:transparent !important;padding:0 !important;box-shadow:none !important;border-radius:0 !important;text-align:left !important;}
-  #map div[style*="rotate(45deg)"]{display:none !important;}
-  #map svg[style*="fill:#aaa"]{fill:#cfcfcf !important;}
-  #map .rb-popup{background:#333333 !important;padding:22px 28px 9px 12px !important;white-space:normal !important;border:1px solid #3a3a3a !important;border-radius:8px !important;box-shadow:0 4px 14px rgba(0,0,0,.12) !important;font-size:12px !important;max-width:250px !important;line-height:1.6 !important;color:#e6e6e6 !important;}
 </style>
 <script src="https://map.qq.com/api/gljs?v=1.exp&libraries=service&key=Q3JBZ-F236N-KVDFE-SOAQ6-HEPVQ-YNFJI"></script>
 </head>
@@ -257,7 +252,7 @@
 </div>
 
 <footer class="pageFoot">
-  <span style="background:#fef3c7;color:#fbbf24;padding:1px 6px;border-radius:3px;font-weight:600;font-size:10px;margin-right:6px;">v1.1.2</span>
+  <span style="background:#fef3c7;color:#fbbf24;padding:1px 6px;border-radius:3px;font-weight:600;font-size:10px;margin-right:6px;">v1.1.3</span>
   底图数据 © <a href="https://lbs.qq.com" target="_blank" rel="noopener">腾讯地图</a> · 本图为行程示意，实际出行请以导航软件为准 · <a href="javascript:window.print()">打印 / 另存为 PDF</a>
 </footer>
 
@@ -433,7 +428,7 @@ var TIPS_HTML = `
 /* ============ 浮动调试条 ============ */
 (function(){
   var d = document.createElement('div'); d.id = 'dbg'; d.innerHTML =
-    '<span class="v">v1.1.2</span>mapWrap: <b id="d-wh">-</b><br>' +
+    '<span class="v">v1.1.3</span>mapWrap: <b id="d-wh">-</b><br>' +
     'center: <b id="d-ct">-</b><br>' +
     'zoom: <b id="d-zo">-</b> · activeDay: <b id="d-ad">-</b> · realRoutes: <b id="d-rr">-</b>';
   document.body.appendChild(d);
@@ -499,7 +494,7 @@ function buildDays(){
 function buildTips(){ panel.innerHTML = TIPS_HTML; }
 
 /* ============ 地图 ============ */
-var map, baseLines, hiLine, markers, dots, infoWin;
+var map, baseLines, hiLine, markers, dots;
 var FALLBACK = [];
 
 function pinSVG(n, color){
@@ -606,8 +601,6 @@ function init(){
   mStyles['dot'] = dotStyle;
   dots = new TMap.MultiMarker({ map: map, styles: {dot: dotStyle}, geometries: dotGeoms });
 
-  infoWin = new TMap.InfoWindow({ map: map, position: new TMap.LatLng(26.35,106.40), enableCustom: true, content: '' });
-  infoWin.close();
 
   markers.on('click', function(e){
     var id = e.geometry.id;
@@ -741,26 +734,6 @@ function focusDay(n, fromMap){
     }catch(e){}
   }
 
-  /* v2.8：移动端不弹气泡（挡地图）—— 仅 PC 端保留 */
-  if(!isMob){
-    var c = COLORS[n-1];
-    infoWin.setPosition(L(d.to));
-    infoWin.setContent(
-      '<div class="rb-popup" style="background:#333333;border-radius:8px;padding:9px 12px;border:1px solid #3a3a3a;' +
-      'box-shadow:0 4px 14px rgba(0,0,0,.12);font-size:12px;max-width:250px;line-height:1.6">' +
-      '<div style="font-weight:700;font-size:13px;color:'+c+'">Day '+n+' · '+d.date+' '+d.week+'</div>' +
-      '<div style="margin:3px 0 5px;font-weight:600">'+d.title+'</div>' +
-      '<div style="color:#9e9e9e">🚗 '+d.km+' km / '+d.drive+'</div>' +
-      '<div style="color:#9e9e9e">⛰ '+altFull(n)+'</div>' +
-      '<div style="color:#9e9e9e">🏨 '+d.stay+'</div>' +
-      '<div style="margin-top:6px;padding-top:5px;border-top:1px dashed #3a3a3a;' +
-      'color:#7a7a7a;font-size:11px">点该天卡片看完整行程 · 再点一次可收起</div></div>'
-    );
-    infoWin.open();
-  } else {
-    try{ infoWin.close(); }catch(e){}
-  }
-
   var el = panel.querySelector('.day[data-i="'+n+'"]');
   if(el) el.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
@@ -798,7 +771,6 @@ function showAll(){
   activeDay = 0;
   /* v2.9：清除移动端分栏聚焦状态，mapWrap 高度回到默认 45vh */
   try{ clearMobFocus(); }catch(e){}
-  try{ infoWin.close(); }catch(e){}
   hiLine.setGeometries([]);
   Array.prototype.forEach.call(panel.querySelectorAll('.day'), function(el){ el.classList.remove('on'); });
 
@@ -1003,6 +975,28 @@ setTimeout(function(){
     if(n) n.style.display = 'flex';
   }
 }, 3000);
+</script>
+<script>
+/* v1.1.3：腾讯地图版权标注 缩小+压暗（保持可见可读；遵守腾讯地图API服务条款4.3，不作隐藏/删除） */
+(function(){
+  var css=document.createElement('style');
+  css.textContent='#map a[href*="qq.com"]{transform:scale(.8);transform-origin:left bottom;filter:grayscale(.5) brightness(.8);opacity:.82;}';
+  document.head.appendChild(css);
+  function tidy(){
+    function apply(el){ if(!el||el.__tc)return; el.__tc=1; el.style.transform='scale(0.8)'; el.style.transformOrigin='left bottom'; el.style.filter='grayscale(0.5) brightness(0.8)'; el.style.opacity='0.82'; }
+    function scan(){
+      var map=document.getElementById('map'); if(!map) return;
+      var sel='a[href*="qq.com"], a[href*="lbs.qq.com"], [class*="logo"], [class*="Logo"], [class*="copyright"], [class*="attr"], [class*="Attr"]';
+      var list=map.querySelectorAll(sel); for(var i=0;i<list.length;i++){ var n=list[i]; if(n.closest('.pageFoot')) continue; apply(n); }
+      if(map.parentElement){ var l2=map.parentElement.querySelectorAll(sel); for(var j=0;j<l2.length;j++){ var m=l2[j]; if(m.closest('.pageFoot')) continue; apply(m); } }
+    }
+    scan();
+    [600,1500,3000,6000].forEach(function(d){ setTimeout(scan,d); });
+    var map=document.getElementById('map');
+    if(map && window.MutationObserver){ try{ new MutationObserver(function(){scan();}).observe(map,{childList:true,subtree:true}); }catch(e){} }
+  }
+  if(window.TMap) tidy(); else window.addEventListener('load', tidy);
+})();
 </script>
 </body>
 </html>
