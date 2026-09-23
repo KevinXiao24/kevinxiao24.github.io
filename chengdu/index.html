@@ -252,7 +252,7 @@
 </div>
 
 <footer class="pageFoot">
-  <span style="background:#fef3c7;color:#fbbf24;padding:1px 6px;border-radius:3px;font-weight:600;font-size:10px;margin-right:6px;">v1.1.4</span>
+  <span style="background:#fef3c7;color:#fbbf24;padding:1px 6px;border-radius:3px;font-weight:600;font-size:10px;margin-right:6px;">v1.1.5</span>
   底图数据 © <a href="https://lbs.qq.com" target="_blank" rel="noopener">腾讯地图</a> · 本图为行程示意，实际出行请以导航软件为准 · <a href="javascript:window.print()">打印 / 另存为 PDF</a>
 </footer>
 
@@ -428,7 +428,7 @@ var TIPS_HTML = `
 /* ============ 浮动调试条 ============ */
 (function(){
   var d = document.createElement('div'); d.id = 'dbg'; d.innerHTML =
-    '<span class="v">v1.1.4</span>mapWrap: <b id="d-wh">-</b><br>' +
+    '<span class="v">v1.1.5</span>mapWrap: <b id="d-wh">-</b><br>' +
     'center: <b id="d-ct">-</b><br>' +
     'zoom: <b id="d-zo">-</b> · activeDay: <b id="d-ad">-</b> · realRoutes: <b id="d-rr">-</b>';
   document.body.appendChild(d);
@@ -980,10 +980,10 @@ setTimeout(function(){
 /* v1.1.3：腾讯地图版权标注 缩小+压暗（保持可见可读；遵守腾讯地图API服务条款4.3，不作隐藏/删除） */
 (function(){
   var css=document.createElement('style');
-  css.textContent='#map a[href*="qq.com"]{transform:scale(.8);transform-origin:left bottom;filter:grayscale(.5) brightness(.8);opacity:.82;}';
+  css.textContent='#map a[href*="qq.com"]{transform:scale(.6);transform-origin:left bottom;filter:grayscale(.6) brightness(.75);opacity:.72;}';
   document.head.appendChild(css);
   function tidy(){
-    function apply(el){ if(!el||el.__tc)return; el.__tc=1; el.style.transform='scale(0.8)'; el.style.transformOrigin='left bottom'; el.style.filter='grayscale(0.5) brightness(0.8)'; el.style.opacity='0.82'; }
+    function apply(el){ if(!el||el.__tc)return; el.__tc=1; el.style.transform='scale(0.6)'; el.style.transformOrigin='left bottom'; el.style.filter='grayscale(0.6) brightness(0.75)'; el.style.opacity='0.72'; }
     function scan(){
       var map=document.getElementById('map'); if(!map) return;
       var sel='a[href*="qq.com"], a[href*="lbs.qq.com"], [class*="logo"], [class*="Logo"], [class*="copyright"], [class*="attr"], [class*="Attr"]';
