@@ -644,7 +644,7 @@ function init(){
     var d = DAYS[i];
     var pts = [d.from].concat(d.via.map(function(v){return [v[0],v[1]];})).concat([d.to]);
     styles['c'+d.d] = new TMap.PolylineStyle({
-      color: COLORS[i], width: 5
+      color: COLORS[i], width: 5,
       lineCap: 'round', showArrow: true,
       arrowOptions: { width:5, height:7, space:60 }
     });
@@ -670,7 +670,7 @@ function init(){
   /* v2.1.1：选中路线高亮改用各天自身颜色加粗（不再统一橙色，与小程序一致） */
   var hiStyles = {};
   for(i=0;i<DAYS.length;i++){
-    hiStyles['hi'+(i+1)] = new TMap.PolylineStyle({ color: COLORS[i], width:9 lineCap:'round' });
+    hiStyles['hi'+(i+1)] = new TMap.PolylineStyle({ color: COLORS[i], width:9, lineCap:'round' });
   }
   hiLine = new TMap.MultiPolyline({
     map: map,
