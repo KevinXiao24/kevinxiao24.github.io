@@ -79,6 +79,9 @@
   .btn:active{transform:translateY(1px)}
   .btn.ghost{background:#eef2fb;color:var(--brand-d)}
   .btn.warn{background:#fdeaea;color:var(--red)}
+  /* 「模板下载」是文字型按钮：无底色，红色突出，避免被当成主要操作 */
+  .btn.tpl{background:transparent;color:var(--red);padding-left:8px;padding-right:8px}
+  .btn.tpl:hover{background:rgba(216,52,52,.08)}
   /* flex 子项默认 min-width:auto，按钮会被文字撑开导致整行溢出；
      置 0 允许收缩，配合 wrap 在放不下时整块换行 */
   .row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
@@ -374,6 +377,7 @@
       <button class="btn" onclick="document.getElementById('importUni').click()">导入 OMRON Plus CSV</button>
       <button class="btn ghost" onclick="exportJSON()">导出备份</button>
       <button class="btn ghost" onclick="document.getElementById('importFile').click()">导入备份</button>
+      <button class="btn tpl" onclick="downloadTemplate()">模板下载</button>
       <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJSON(event)" />
       <input type="file" id="importUni" accept=".csv,.txt,text/csv" style="display:none" onchange="importUniversal(event)" />
       <!-- 「清空全部」暂时隐藏，防误操作。要恢复：删掉下面的 style="display:none" 即可 -->
@@ -1075,6 +1079,24 @@ async function exportJSON(){
     a.click();
     URL.revokeObjectURL(url);
   }catch(e){ alert('导出失败：' + e.message); }
+}
+
+// 模板下载：单文件版不能引用外部 CSV，所以模板内容内嵌在这里。
+// 带 UTF-8 BOM + CRLF，Excel / 记事本直接打开不乱码；下行是填写示例。
+function downloadTemplate(){
+  const csv = '\ufeff' + [
+    '日期,时间,高压,低压,脉搏,备注',
+    '2026/10/1,8:00,130,85,72,早起空腹测量'
+  ].join('\r\n') + '\r\n';
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'OMRON Plus.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
 }
 
 
