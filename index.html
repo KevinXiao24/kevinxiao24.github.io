@@ -161,14 +161,6 @@
   // GitHub Pages 没有 Python 后端，不做 /api/status 探测，
   // 也不能回退到独立端口 —— Pages 不支持端口，那样必然失败。
   // 每位访客的数据只存在自己的浏览器里，互不共享、不上传服务器。
-
-  // 兼容兜底：服务器路书目录会把本仓库整包同步过去。若它的 nginx 还指向
-  // 仓库根，访问 /roadbook/ 会加载本页 —— 此时自动转到子目录里的路书门户，
-  // 避免路书入口失效。github.io 站点本身不触发（改好 nginx 后也不会触发）。
-  if (location.pathname.indexOf('/roadbook/') === 0 &&
-      location.hostname.indexOf('github.io') < 0) {
-    location.replace('roadbook/index.html');
-  }
 </script>
 </body>
 </html>
