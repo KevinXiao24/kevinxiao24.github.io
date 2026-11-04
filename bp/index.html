@@ -79,9 +79,17 @@
   .btn:active{transform:translateY(1px)}
   .btn.ghost{background:#eef2fb;color:var(--brand-d)}
   .btn.warn{background:#fdeaea;color:var(--red)}
-  /* 「模板下载」是文字型按钮：无底色，红色突出，避免被当成主要操作 */
-  .btn.tpl{background:transparent;color:var(--red);padding-left:8px;padding-right:8px}
-  .btn.tpl:hover{background:rgba(216,52,52,.08)}
+  /* 「模板下载」常驻浅红底 + 红字，与旁边的按钮一样有底色 */
+  .btn.tpl{background:#fdeaea;color:var(--red)}
+  .btn.tpl:hover{background:#fbdcdc}
+  /* 左上角返回门户：沿用路书页的胶囊箭头，换成血压页的蓝色系 */
+  .back-portal{display:inline-flex;align-items:center;justify-content:center;flex:none;
+    width:38px;height:34px;border-radius:20px;color:var(--brand);
+    border:1px solid #cbd9f7;background:transparent;
+    font-size:17px;line-height:1;text-decoration:none;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;}
+  .back-portal:hover{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .back-portal .arw{font-size:17px;line-height:1;}
   /* flex 子项默认 min-width:auto，按钮会被文字撑开导致整行溢出；
      置 0 允许收缩，配合 wrap 在放不下时整块换行 */
   .row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
@@ -271,10 +279,11 @@
 <body>
 <div class="wrap">
   <header>
+    <a class="back-portal" href="https://kevinxiao24.github.io/" aria-label="返回门户"><span class="arw">←</span></a>
     <div class="logo">♥</div>
     <div class="titles">
       <h1>高血压管理助手</h1>
-      <p>血压记录 · 自动分级 · 趋势预警 · 数据存在本文件夹内</p>
+      <p>血压记录 · 自动分级 · 趋势预警 · 数据只存本机浏览器</p>
     </div>
   </header>
   <div class="sync-tag" id="syncTag" style="display:none"></div>
