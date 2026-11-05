@@ -873,21 +873,10 @@
     if (tweaked) return;
     tweaked = true;
 
-    var bar = document.createElement('div');
-    bar.setAttribute('style',
-      'background:#fff7e6;border:1px solid #ffd591;border-radius:10px;' +
-      'padding:10px 14px;margin:12px 0;font-size:13px;line-height:1.7;color:#7a4b00');
-    bar.innerHTML = '<b>离线模式（免安装版）</b>：数据只保存在<b>当前这个浏览器</b>里，' +
-      '不写入任何文件、不上传服务器。清理浏览器缓存或网站数据、换浏览器、换设备、移动本文件位置，' +
-      '都可能导致数据丢失；<b>请定期点「导出备份」保存 JSON 文件</b>，需要恢复时用「导入备份」把备份导回来。' +
-      '<br>AI 咨询只能用「浏览器直连」；部分国内厂商不允许跨域，会提示 Failed to fetch。';
-    document.body.insertBefore(bar, document.body.firstChild);
-
+    // 顶部离线提示栏与同步状态标签已按用户要求移除（2026-11-05）。
+    // 数据存放位置的说明保留在「历史记录」区的导入提示里，不重复打扰。
     var tag = document.getElementById('syncTag');
-    if (tag) {
-      tag.style.display = '';
-      tag.textContent = '● 离线模式：数据仅存于本浏览器，请定期导出备份';
-    }
+    if (tag) tag.style.display = 'none';
     // file:// 下「返回主页」会跳到文件系统根目录，没有意义
     var hl = document.getElementById('homeLink');
     if (hl) hl.style.display = 'none';
@@ -965,7 +954,7 @@ async function initStorage(){
   const tag = document.getElementById('syncTag');
   if (tag){
     tag.style.display='';
-    tag.textContent = '● 离线模式：数据仅存于本浏览器，请定期导出备份';
+    tag.textContent = '';
   }
   await reload();
   // 定时拉取：别的设备上传了新数据，这台页面会自动跟上
