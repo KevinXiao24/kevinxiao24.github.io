@@ -31,7 +31,7 @@
   :root{
     --bg:#f5f7fa; --card:#ffffff; --ink:#1f2933; --sub:#6b7785;
     --line:#e3e8ef; --brand:#2f6df0; --brand-d:#1e4fbf;
-    --green:#2e9e5b; --teal:#0d9488; --yellow:#e0a106; --orange:#e8730c; --red:#d83434;
+    --green:#2e9e5b; --yellow:#e0a106; --orange:#e8730c; --red:#d83434; --purple:#7c3aed;
     --shadow:0 2px 12px rgba(20,40,80,.08);
   }
   *{box-sizing:border-box}
@@ -240,17 +240,20 @@
   /* 趋势图下方的「选中点详情」信息条 */
   .chart-info{margin-top:10px;padding:9px 12px;border-radius:10px;background:#f4f7fc;
     border:1px solid var(--line);font-size:12px;color:var(--ink);line-height:1.75;min-height:20px;
-    display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    display:flex;justify-content:space-between;align-items:flex-start;gap:0;flex-wrap:wrap}
   .chart-info.idle{color:var(--sub);font-size:11.5px}
   .chart-info .ci-date{color:var(--sub);font-size:11.5px;margin-bottom:2px}
   .chart-info .ci-row{display:flex;gap:14px;flex-wrap:wrap}
   .chart-info .ci-item{white-space:nowrap}
-  .chart-info .ci-main{min-width:0;flex:1 1 260px}
-  .chart-info .ci-avg{flex:0 1 auto;color:var(--ink);font-size:12px;
+  .chart-info .ci-main{min-width:0;flex:0 0 50%;width:50%;box-sizing:border-box;padding-right:12px}
+  .chart-info .ci-avg{flex:0 0 50%;width:50%;box-sizing:border-box;color:var(--ink);font-size:12px;
     border-left:1px solid var(--line);padding-left:12px}
   .chart-info .ci-avg-title{display:block;color:var(--sub);font-size:11.5px;margin-bottom:2px}
-  @media(max-width:620px){.chart-info .ci-avg{border-left:none;padding-left:0;
-    border-top:1px dashed var(--line);padding-top:6px;width:100%}}
+  @media(max-width:620px){
+    .chart-info .ci-main,.chart-info .ci-avg{flex:0 0 100%;width:100%}
+    .chart-info .ci-avg{border-left:none;padding-left:0;padding-right:0;
+      border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+  }
 
   /* 底部版权 */
   .copyright{text-align:center;margin-top:22px;padding-top:16px;
@@ -421,13 +424,13 @@
         <tbody>
           <tr><td><span class="src-tag" style="background:rgb(46,158,91);color:#fff">正常血压</span></td>
               <td>&lt; 120</td><td>且 &lt; 80</td></tr>
-          <tr><td><span class="src-tag" style="background:rgb(13,148,136);color:#fff">正常高值</span></td>
+          <tr><td><span class="src-tag" style="background:rgb(224,161,6);color:#fff">正常高值</span></td>
               <td>120 ~ 139</td><td>或 80 ~ 89</td></tr>
-          <tr><td><span class="src-tag" style="background:rgb(224,161,6);color:#fff">1级（轻度）</span></td>
+          <tr><td><span class="src-tag" style="background:rgb(232,115,12);color:#fff">1级（轻度）</span></td>
               <td>140 ~ 159</td><td>或 90 ~ 99</td></tr>
-          <tr><td><span class="src-tag" style="background:rgb(232,115,12);color:#fff">2级（中度）</span></td>
+          <tr><td><span class="src-tag" style="background:rgb(216,52,52);color:#fff">2级（中度）</span></td>
               <td>160 ~ 179</td><td>或 100 ~ 109</td></tr>
-          <tr><td><span class="src-tag" style="background:rgb(216,52,52);color:#fff">3级（重度）</span></td>
+          <tr><td><span class="src-tag" style="background:rgb(124,58,237);color:#fff">3级（重度）</span></td>
               <td>≥ 180</td><td>或 ≥ 110</td></tr>
         </tbody>
       </table>
@@ -925,13 +928,13 @@ let chart = null;
 function load(){ return SERVER_CACHE.slice(); }
 
 function classify(s, d){
-  if (s >= 180 || d >= 110) return {lv:3, name:'3级高血压（重度）', color:'var(--red)', rgb:'216,52,52',
+  if (s >= 180 || d >= 110) return {lv:3, name:'3级高血压（重度）', color:'var(--purple)', rgb:'124,58,237',
     advice:'血压处于重度升高水平，建议尽快就医，必要时急诊处理。'};
-  if (s >= 160 || d >= 100) return {lv:2, name:'2级高血压（中度）', color:'var(--orange)', rgb:'232,115,12',
+  if (s >= 160 || d >= 100) return {lv:2, name:'2级高血压（中度）', color:'var(--red)', rgb:'216,52,52',
     advice:'建议尽早就诊，通常需要在医生指导下启动药物治疗。'};
-  if (s >= 140 || d >= 90) return {lv:1, name:'1级高血压（轻度）', color:'var(--yellow)', rgb:'224,161,6',
+  if (s >= 140 || d >= 90) return {lv:1, name:'1级高血压（轻度）', color:'var(--orange)', rgb:'232,115,12',
     advice:'已达高血压诊断标准，建议改善生活方式并规律监测，由医生评估是否用药。'};
-  if (s >= 120 || d >= 80) return {lv:0, name:'正常高值', color:'var(--teal)', rgb:'13,148,136',
+  if (s >= 120 || d >= 80) return {lv:0, name:'正常高值', color:'var(--yellow)', rgb:'224,161,6',
     advice:'尚未达高血压，但偏高。注意低盐饮食、规律运动、控制体重，预防进展。'};
   return {lv:-1, name:'正常血压', color:'var(--green)', rgb:'46,158,91',
     advice:'血压理想，继续保持健康生活习惯即可。'};
