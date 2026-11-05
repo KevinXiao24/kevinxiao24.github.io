@@ -31,7 +31,7 @@
   :root{
     --bg:#f5f7fa; --card:#ffffff; --ink:#1f2933; --sub:#6b7785;
     --line:#e3e8ef; --brand:#2f6df0; --brand-d:#1e4fbf;
-    --green:#2e9e5b; --yellow:#e0a106; --orange:#e8730c; --red:#d83434;
+    --green:#2e9e5b; --teal:#0d9488; --yellow:#e0a106; --orange:#e8730c; --red:#d83434;
     --shadow:0 2px 12px rgba(20,40,80,.08);
   }
   *{box-sizing:border-box}
@@ -76,12 +76,19 @@
   .full{grid-column:1/-1}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:10px;
     padding:11px 16px;font-size:15px;font-weight:600;cursor:pointer;background:var(--brand);color:#fff}
-  .btn:active{transform:translateY(1px)}
   .btn.ghost{background:#eef2fb;color:var(--brand-d)}
   .btn.warn{background:#fdeaea;color:var(--red)}
-  /* 「模板下载」常驻浅红底 + 红字，与旁边的按钮一样有底色 */
   .btn.tpl{background:#fdeaea;color:var(--red)}
-  .btn.tpl:hover{background:#fbdcdc}
+  /* 统一交互：所有按钮 hover 时底板变深 + 轻微上浮，键盘聚焦有描边 */
+  .btn,.del,.ai-quick button,.tab,.act-btn{
+    transition:filter .15s ease,transform .12s ease,box-shadow .15s ease,background .15s ease,border-color .15s ease}
+  .btn:hover,.del:hover,.ai-quick button:hover,.tab:hover,.act-btn:hover{
+    filter:brightness(.95);transform:translateY(-1px);box-shadow:0 4px 12px rgba(20,40,80,.13)}
+  .btn:active,.del:active,.ai-quick button:active,.tab:active,.act-btn:active{
+    transform:translateY(0);box-shadow:none}
+  .btn:focus-visible,.del:focus-visible,.ai-quick button:focus-visible,.tab:focus-visible{
+    outline:2px solid var(--brand);outline-offset:2px}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;filter:none}
   /* 左上角返回门户：沿用路书页的胶囊箭头，换成血压页的蓝色系 */
   .back-portal{display:inline-flex;align-items:center;justify-content:center;flex:none;
     width:38px;height:34px;border-radius:20px;color:var(--brand);
@@ -232,11 +239,18 @@
   .disclaimer{font-size:11px;color:var(--sub);text-align:center;margin-top:18px;line-height:1.6}
   /* 趋势图下方的「选中点详情」信息条 */
   .chart-info{margin-top:10px;padding:9px 12px;border-radius:10px;background:#f4f7fc;
-    border:1px solid var(--line);font-size:12px;color:var(--ink);line-height:1.75;min-height:20px}
+    border:1px solid var(--line);font-size:12px;color:var(--ink);line-height:1.75;min-height:20px;
+    display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
   .chart-info.idle{color:var(--sub);font-size:11.5px}
   .chart-info .ci-date{color:var(--sub);font-size:11.5px;margin-bottom:2px}
   .chart-info .ci-row{display:flex;gap:14px;flex-wrap:wrap}
   .chart-info .ci-item{white-space:nowrap}
+  .chart-info .ci-main{min-width:0;flex:1 1 260px}
+  .chart-info .ci-avg{flex:0 1 auto;color:var(--ink);font-size:12px;
+    border-left:1px solid var(--line);padding-left:12px}
+  .chart-info .ci-avg-title{display:block;color:var(--sub);font-size:11.5px;margin-bottom:2px}
+  @media(max-width:620px){.chart-info .ci-avg{border-left:none;padding-left:0;
+    border-top:1px dashed var(--line);padding-top:6px;width:100%}}
 
   /* 底部版权 */
   .copyright{text-align:center;margin-top:22px;padding-top:16px;
@@ -331,7 +345,6 @@
     </div>
     <div class="row">
       <button class="btn" onclick="addRecord()">＋ 保存记录</button>
-      <button class="btn ghost" onclick="fillExample()">填入示例</button>
     </div>
   </section>
 
@@ -395,7 +408,7 @@
     <div class="import-hint">
       数据来源：在 <b>OMRON Plus</b> 里导出 CSV，然后点上面的「导入 OMRON Plus CSV」上传。<br/>
       导入为<b>增量合并</b>，按「日期 + 时间 + 数值」判重，已有记录自动跳过。<br/>
-      数据只保存在<b>当前浏览器</b>里。请定期点「导出备份」保存 JSON，换电脑时用「导入备份」恢复。
+      数据只保存在<b>当前浏览器</b>里。清理浏览器缓存或网站数据、换浏览器、移动文件都可能丢失；请定期点「导出备份」保存 JSON，需要恢复时用「导入备份」导回。
     </div>
     <div id="listWrap"><div class="empty">还没有记录，先在上方添加一条吧。</div></div>
 
@@ -408,7 +421,7 @@
         <tbody>
           <tr><td><span class="src-tag" style="background:rgb(46,158,91);color:#fff">正常血压</span></td>
               <td>&lt; 120</td><td>且 &lt; 80</td></tr>
-          <tr><td><span class="src-tag" style="background:rgb(224,161,6);color:#fff">正常高值</span></td>
+          <tr><td><span class="src-tag" style="background:rgb(13,148,136);color:#fff">正常高值</span></td>
               <td>120 ~ 139</td><td>或 80 ~ 89</td></tr>
           <tr><td><span class="src-tag" style="background:rgb(224,161,6);color:#fff">1级（轻度）</span></td>
               <td>140 ~ 159</td><td>或 90 ~ 99</td></tr>
@@ -862,8 +875,8 @@
       'background:#fff7e6;border:1px solid #ffd591;border-radius:10px;' +
       'padding:10px 14px;margin:12px 0;font-size:13px;line-height:1.7;color:#7a4b00');
     bar.innerHTML = '<b>离线模式（免安装版）</b>：数据只保存在<b>当前这个浏览器</b>里，' +
-      '不写入任何文件、不上传服务器。清理浏览器数据、换浏览器或移动本文件位置都可能导致数据丢失，' +
-      '<b>请定期点「导出备份」保存 JSON</b>，换电脑时用「导入备份」恢复。' +
+      '不写入任何文件、不上传服务器。清理浏览器缓存或网站数据、换浏览器、换设备、移动本文件位置，' +
+      '都可能导致数据丢失；<b>请定期点「导出备份」保存 JSON 文件</b>，需要恢复时用「导入备份」把备份导回来。' +
       '<br>AI 咨询只能用「浏览器直连」；部分国内厂商不允许跨域，会提示 Failed to fetch。';
     document.body.insertBefore(bar, document.body.firstChild);
 
@@ -918,7 +931,7 @@ function classify(s, d){
     advice:'建议尽早就诊，通常需要在医生指导下启动药物治疗。'};
   if (s >= 140 || d >= 90) return {lv:1, name:'1级高血压（轻度）', color:'var(--yellow)', rgb:'224,161,6',
     advice:'已达高血压诊断标准，建议改善生活方式并规律监测，由医生评估是否用药。'};
-  if (s >= 120 || d >= 80) return {lv:0, name:'正常高值', color:'var(--yellow)', rgb:'224,161,6',
+  if (s >= 120 || d >= 80) return {lv:0, name:'正常高值', color:'var(--teal)', rgb:'13,148,136',
     advice:'尚未达高血压，但偏高。注意低盐饮食、规律运动、控制体重，预防进展。'};
   return {lv:-1, name:'正常血压', color:'var(--green)', rgb:'46,158,91',
     advice:'血压理想，继续保持健康生活习惯即可。'};
@@ -1012,16 +1025,6 @@ function nowParts(){
   const p = n => String(n).padStart(2,'0');
   return { date: `${t.getFullYear()}-${p(t.getMonth()+1)}-${p(t.getDate())}`,
            time: `${p(t.getHours())}:${p(t.getMinutes())}` };
-}
-
-function fillExample(){
-  const p = nowParts();
-  document.getElementById('sys').value = 142;
-  document.getElementById('dia').value = 92;
-  document.getElementById('pulse').value = 76;
-  document.getElementById('note').value = '示例数据，可删除';
-  document.getElementById('date').value = p.date;
-  document.getElementById('time').value = p.time;
 }
 
 async function addRecord(){
@@ -1467,6 +1470,29 @@ function render(){
 // 浮层会正好被手指盖住；放到图表外面就永远不会挡。
 let CHART_SEL_IDX = -1;   // 信息条当前显示的是第几个点
 
+// 以当前电脑时间为基准，统计最近 7 天的平均值（不受标签卡筛选影响）
+function recent7AvgHtml(){
+  const now = new Date();
+  const from = new Date(now.getTime() - 7*24*60*60*1000);
+  const rows = load().filter(r=>{
+    const t = new Date(String(r.date||'') + 'T' + String(r.time||'00:00') + ':00');
+    return !isNaN(t.getTime()) && t >= from && t <= now;
+  });
+  const mean = k=>{
+    const v = rows.map(r=>Number(r[k])).filter(x=>Number.isFinite(x) && x>0);
+    return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length) : null;
+  };
+  const s=mean('sys'), d=mean('dia'), p=mean('pulse');
+  const body = (s===null && d===null && p===null)
+    ? '<span class="ci-item">暂无数据</span>'
+    : '<div class="ci-row">' +
+      '<span class="ci-item"><b style="color:#d83434">收缩压</b> ' + (s??'—') + ' mmHg</span>' +
+      '<span class="ci-item"><b style="color:#2f6df0">舒张压</b> ' + (d??'—') + ' mmHg</span>' +
+      '<span class="ci-item"><b style="color:#7a8699">心率</b> ' + (p??'—') + ' 次/分</span>' +
+      '</div>';
+  return '<div class="ci-avg"><span class="ci-avg-title">近 7 日均值（' + rows.length + ' 次）</span>' + body + '</div>';
+}
+
 function showChartPoint(elements, sorted){
   const box = document.getElementById('chartInfo');
   if (!box) return;
@@ -1479,12 +1505,14 @@ function showChartPoint(elements, sorted){
   CHART_SEL_IDX = idx;
   box.classList.remove('idle');
   box.innerHTML =
-    '<div class="ci-date">' + r.date + ' ' + r.time + '</div>' +
-    '<div class="ci-row">' +
-      '<span class="ci-item"><b style="color:#d83434">收缩压</b> ' + r.sys + ' mmHg</span>' +
-      '<span class="ci-item"><b style="color:#2f6df0">舒张压</b> ' + r.dia + ' mmHg</span>' +
-      '<span class="ci-item"><b style="color:#7a8699">心率</b> ' + (r.pulse ?? '—') + ' 次/分</span>' +
-    '</div>';
+    '<div class="ci-main">' +
+      '<div class="ci-date">' + r.date + ' ' + r.time + '</div>' +
+      '<div class="ci-row">' +
+        '<span class="ci-item"><b style="color:#d83434">收缩压</b> ' + r.sys + ' mmHg</span>' +
+        '<span class="ci-item"><b style="color:#2f6df0">舒张压</b> ' + r.dia + ' mmHg</span>' +
+        '<span class="ci-item"><b style="color:#7a8699">心率</b> ' + (r.pulse ?? '—') + ' 次/分</span>' +
+      '</div>' +
+    '</div>' + recent7AvgHtml();
 }
 
 
@@ -1501,13 +1529,12 @@ function renderChart(arr){
   const labels = sorted.map(r=>`${r.date} ${r.time}`);
   const sysData = sorted.map(r=>r.sys);
   const diaData = sorted.map(r=>r.dia);
-  const pulseData = sorted.map(r=>r.pulse);
   // 每次重画都把信息条复位（换筛选卡、数据刷新后不该残留上一条）
   CHART_SEL_IDX = -1;
   const infoBox = document.getElementById('chartInfo');
   if (infoBox){
     infoBox.classList.add('idle');
-    infoBox.textContent = '点一下图上的曲线，查看该次测量的具体数值';
+    infoBox.innerHTML = '<div class="ci-main">点一下图上的曲线，查看该次测量的具体数值</div>' + recent7AvgHtml();
   }
 
   const ctx = document.getElementById('chart').getContext('2d');
@@ -1518,15 +1545,14 @@ function renderChart(arr){
     data:{ labels,
       datasets:[
         {label:'收缩压', data:sysData, borderColor:'#d83434', backgroundColor:'rgba(216,52,52,.08)', tension:.3, fill:true, pointRadius:3},
-        {label:'舒张压', data:diaData, borderColor:'#2f6df0', backgroundColor:'rgba(47,109,240,.08)', tension:.3, fill:true, pointRadius:3},
-        {label:'心率', data:pulseData, borderColor:'#7a8699', borderDash:[5,4], tension:.3, pointRadius:2, spanGaps:true}
+        {label:'舒张压', data:diaData, borderColor:'#2f6df0', backgroundColor:'rgba(47,109,240,.08)', tension:.3, fill:true, pointRadius:3}
       ]},
     options:{ responsive:true, maintainAspectRatio:false,
       // 触摸设备上点按要更准一些
       interaction:{ mode:'index', intersect:false },
       plugins:{ legend:{position:'top'},
         tooltip:{
-          callbacks:{label:c=> c.dataset.label+': '+(c.parsed.y??'-')+(c.dataset.label==='心率'?' 次/分':' mmHg')},
+          callbacks:{label:c=> c.dataset.label+': '+(c.parsed.y??'-')+' mmHg'},
         }},
       // 点/触摸图上的某个点，把详情显示在图表下方的固定区域
       onClick:(evt, elements)=> showChartPoint(elements, sorted),
@@ -1534,8 +1560,10 @@ function renderChart(arr){
       // 否则会出现"浮层已经跳到新点、下面还停在上一条"的错位
       onHover:(evt, elements)=> showChartPoint(elements, sorted),
       scales:{
-        y:{ beginAtZero:false, suggestedMin:50, suggestedMax:200,
-            title:{display:true,text:'mmHg / 次·分⁻¹'} },
+        y:{ min:60, max:180,
+            ticks:{ stepSize:10, color:'#6b7785', font:{size:11} },
+            grid:{ color:'rgba(31,41,51,.09)', drawTicks:false },
+            title:{display:true,text:'mmHg'} },
         // X 轴日期标签太密（斜排后依然拥挤），不再展示；
         // 具体日期与数值看悬浮/点按弹出的浮层即可。
         x:{ ticks:{ display:false }, grid:{ display:false } }
