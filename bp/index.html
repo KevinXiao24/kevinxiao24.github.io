@@ -578,7 +578,9 @@
   var qs = new URLSearchParams(location.search);
   try { if (qs.has('online')) sessionStorage.removeItem('bp_offline_auto'); } catch (e) {}
 
-  var forced = qs.has('offline');
+  // GitHub Pages 是纯静态站，没有后端：跳过 /api/status 探测，避免访客多一次重载
+  var isStaticDemo = (location.hostname === 'kevinxiao24.github.io');
+  var forced = qs.has('offline') || isStaticDemo;
   var auto = false;
   try { auto = sessionStorage.getItem('bp_offline_auto') === '1'; } catch (e) {}
   var isFile = (location.protocol === 'file:');
@@ -866,6 +868,176 @@
     }
   };
 
+  // ------------------------------------------------ 简化 API 配置（仅 git / 免安装版）
+  // 只保留「选服务商 + 填 Key」两项；保存时只向选中的那一家拉 /models 自动配模型。
+  // 全部在适配层内完成，母版 index.html 与 icu 云端版完全不受影响。
+  var AI_CFG = 'bp_ai_cfg_v1', AI_KEY = 'bp_ai_key_v1';
+  var DEMO_MODEL = { doubao: 'doubao-seed-2-1-lite-260915' };
+
+  function setAiStatus(text, good) {
+    var el = document.getElementById('aiStatus');
+    if (el) { el.textContent = text || ''; el.className = 'ai-hint' + (good ? ' good' : ''); }
+  }
+  function fullBox(id) {
+    var el = document.getElementById(id);
+    return el && el.closest ? el.closest('.full') : null;
+  }
+  function showAdvancedLink() {
+    var a = document.getElementById('aiAdvancedToggle');
+    if (a) a.style.display = 'inline-block';
+  }
+  function pickModel(ids, preferred) {
+    if (!ids.length || !preferred) return preferred;
+    if (ids.indexOf(preferred) >= 0) return preferred;
+    var stem = preferred.replace(/[-.]?\d{6,}$/, '');
+    var same = ids.filter(function (x) {
+      return stem && x.indexOf(stem) === 0 &&
+        !/embedding|seedream|seedance|seed3d|whisper|tts|asr/i.test(x);
+    });
+    if (same.length) { same.sort(function (a, b) { return b.localeCompare(a); }); return same[0]; }
+    var wl = ['doubao-seed-2-1-lite-', 'doubao-seed-2-1-pro-', 'doubao-seed-2-1-turbo-',
+              'doubao-seed-evolving', 'deepseek-v4-1-flash-', 'glm-5-3-flash-'];
+    for (var i = 0; i < wl.length; i++) {
+      var hit = ids.filter(function (x) { return x.indexOf(wl[i]) === 0; });
+      if (hit.length) { hit.sort(function (a, b) { return b.localeCompare(a); }); return hit[0]; }
+    }
+    return preferred;
+  }
+  function detectModel(base, key, preferred) {
+    var url = base.replace(/\/chat\/completions.*$/, '').replace(/\/+$/, '') + '/models';
+    var h = { 'Authorization': 'Bearer ' + key };
+    if (/openai\.azure\.com|services\.ai\.azure\.com/.test(base)) h['api-key'] = key;
+    if (base.indexOf('api.anthropic.com') >= 0)
+      h['anthropic-dangerous-direct-browser-access'] = 'true';
+    if (base.indexOf('openrouter.ai') >= 0) {
+      h['HTTP-Referer'] = location.origin; h['X-OpenRouter-Title'] = 'BP Tracker';
+    }
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var opts = { headers: h };
+    if (ctrl) opts.signal = ctrl.signal;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 8000);
+    fetch(url, opts).then(function (r) {
+      return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status));
+    }).then(function (d) {
+      clearTimeout(timer);
+      var ids = (d.data || d.models || []).map(function (x) {
+        if (x && typeof x === 'object') return String(x.id || x.name || '');
+        return String(x || '');
+      }).filter(Boolean);
+      var chosen = pickModel(ids, preferred);
+      if (chosen !== preferred) {
+        var el = document.getElementById('aiModel');
+        if (el) el.value = chosen;
+        try {
+          var c = JSON.parse(localStorage.getItem(AI_CFG) || '{}') || {};
+          c.model = chosen; localStorage.setItem(AI_CFG, JSON.stringify(c));
+        } catch (e) {}
+      }
+      try {
+        var dl = document.getElementById('aiModelList');
+        if (dl) dl.innerHTML = ids.slice(0, 400).map(function (m) {
+          return '<option value="' + m.replace(/"/g, '&quot;') + '"></option>';
+        }).join('');
+      } catch (e) {}
+      setAiStatus('✓ 已保存，模型「' + chosen + '」' +
+        (ids.length ? '（该账号可见 ' + ids.length + ' 个模型）' : '') + '，可以开始提问了。', true);
+    }).catch(function () {
+      clearTimeout(timer);
+      setAiStatus('✓ 已保存，使用默认模型「' + preferred + '」。' +
+        '该服务商未返回模型列表（多为浏览器跨域限制），配置不受影响，直接提问试试即可。', true);
+      showAdvancedLink();
+    });
+  }
+  function simplifyAiSetup() {
+    var card = document.getElementById('aiCard');
+    if (!card) return;
+    var note = card.querySelector('.ai-note');
+    if (note) note.textContent =
+      '接入大模型，基于你的血压记录做智能答疑。选择服务商并填写 API Key 即可，模型会自动匹配。' +
+      'API Key 只保存在当前浏览器，不会上传或写入任何文件；清除浏览器数据、换浏览器或换设备后需重新填写。' +
+      '问题与血压数据会发给你选的服务商，请勿输入其他隐私信息。AI 建议不能替代医生诊断。';
+    var sum = card.querySelector('.ai-set > summary');
+    if (sum) sum.textContent = '⚙ API 设置（选服务商 + 填 Key，其余自动）';
+
+    ['aiMode', 'aiBase', 'aiModel'].forEach(function (id) {
+      var box = fullBox(id);
+      if (box) box.style.display = 'none';
+    });
+    try {
+      var row = card.querySelector('.ai-set .row');
+      if (row) Array.prototype.forEach.call(row.querySelectorAll('button'), function (b) {
+        if ((b.getAttribute('onclick') || '').indexOf('fetchModels') >= 0) b.style.display = 'none';
+      });
+    } catch (e) {}
+
+    var st = document.getElementById('aiStatus');
+    if (st && !document.getElementById('aiAdvancedToggle')) {
+      var a = document.createElement('a');
+      a.id = 'aiAdvancedToggle'; a.href = '#';
+      a.textContent = '高级：手动修改地址 / 模型';
+      a.setAttribute('style', 'display:none;font-size:12px;color:var(--sub);margin-top:8px');
+      a.onclick = function (ev) {
+        ev.preventDefault();
+        ['aiMode', 'aiBase', 'aiModel'].forEach(function (id) {
+          var box = fullBox(id);
+          if (box) box.style.display = '';
+        });
+        a.style.display = 'none';
+        setAiStatus('已展开高级设置。修改后仍点「保存设置」。', true);
+      };
+      st.parentNode.insertBefore(a, st.nextSibling);
+    }
+
+    var origApply = window.applyProvider;
+    window.applyProvider = function () {
+      if (typeof origApply === 'function') origApply.apply(this, arguments);
+      var pv = (document.getElementById('aiProvider') || {}).value;
+      if (DEMO_MODEL[pv]) {
+        var m = document.getElementById('aiModel');
+        if (m) m.value = DEMO_MODEL[pv];
+      }
+      var h = document.getElementById('aiHint');
+      if (h) h.textContent = '保存时会自动检测该账号可用的模型，无需手填。';
+    };
+
+    window.saveAiCfg = function () {
+      var pv = (document.getElementById('aiProvider') || {}).value || '';
+      var keyEl = document.getElementById('aiKey');
+      var key = ((keyEl && keyEl.value) || '').trim() || localStorage.getItem(AI_KEY) || '';
+      if (!key) { setAiStatus('请先填写 API Key。'); return; }
+      var bEl = document.getElementById('aiBase');
+      var mEl = document.getElementById('aiModel');
+      if ((!bEl || !bEl.value.trim()) || (!mEl || !mEl.value.trim())) {
+        if (typeof window.applyProvider === 'function') window.applyProvider();
+      }
+      var base = ((bEl && bEl.value) || '').trim().replace(/\/+$/, '');
+      var model = ((mEl && mEl.value) || '').trim();
+      if (!base || !model) {
+        setAiStatus('该服务商没有内置地址或模型，请点「高级：手动修改地址 / 模型」填写。');
+        showAdvancedLink(); return;
+      }
+      localStorage.setItem(AI_CFG, JSON.stringify(
+        { provider: pv, mode: 'direct', base: base, model: model }));
+      localStorage.setItem(AI_KEY, key);
+      setAiStatus('✓ 已保存，正在检测可用模型…', true);
+      detectModel(base, key, model);
+    };
+
+    var origClear = window.clearAiKey;
+    window.clearAiKey = function () {
+      if (typeof origClear === 'function') origClear.apply(this, arguments);
+      setAiStatus('密钥已清除。重新填写后点「保存设置」即可。', true);
+    };
+
+    var b0 = document.getElementById('aiBase');
+    if (b0 && !b0.value.trim() && typeof window.applyProvider === 'function') {
+      window.applyProvider();
+    } else {
+      var h0 = document.getElementById('aiHint');
+      if (h0) h0.textContent = '保存时会自动检测该账号可用的模型，无需手填。';
+    }
+  }
+
   // ---------------------------------------------------------------- UI 微调
   // 在原页面 init() 跑完之后执行（load 事件晚于页面里的 async IIFE）。
   var tweaked = false;
@@ -896,6 +1068,8 @@
       var hint = document.getElementById('aiModeHint');
       if (hint) hint.textContent = '离线模式只能「浏览器直连」；不支持跨域的服务商会提示 Failed to fetch。';
     }
+
+    simplifyAiSetup();
   }
 
   if (document.readyState === 'complete') tweakUI();
