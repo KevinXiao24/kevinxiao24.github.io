@@ -980,57 +980,97 @@
     }
     return preferred;
   }
-  function detectModel(base, key, preferred, fromSnippet) {
-    var url = base.replace(/\/chat\/completions.*$/, '').replace(/\/+$/, '') + '/models';
-    var h = { 'Authorization': 'Bearer ' + key };
-    if (/openai\.azure\.com|services\.ai\.azure\.com/.test(base)) h['api-key'] = key;
+  function verifyConfig(base, key, preferred, fromSnippet) {
+    var chatUrlFinal = /\/chat\/completions(\?|$)/.test(base)
+      ? base : base.replace(/\/+$/, '') + '/chat/completions';
+    var modelsUrlFinal = base.replace(/\/chat\/completions.*$/, '').replace(/\/+$/, '') + '/models';
+    var auth = { 'Authorization': 'Bearer ' + key };
+    if (/openai\.azure\.com|services\.ai\.azure\.com/.test(base)) auth['api-key'] = key;
     if (base.indexOf('api.anthropic.com') >= 0)
-      h['anthropic-dangerous-direct-browser-access'] = 'true';
+      auth['anthropic-dangerous-direct-browser-access'] = 'true';
     if (base.indexOf('openrouter.ai') >= 0) {
-      h['HTTP-Referer'] = location.origin; h['X-OpenRouter-Title'] = 'BP Tracker';
+      auth['HTTP-Referer'] = location.origin; auth['X-OpenRouter-Title'] = 'BP Tracker';
     }
-    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-    var opts = { headers: h };
-    if (ctrl) opts.signal = ctrl.signal;
-    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 8000);
-    fetch(url, opts).then(function (r) {
-      return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status));
-    }).then(function (d) {
-      clearTimeout(timer);
-      var ids = (d.data || d.models || []).map(function (x) {
-        if (x && typeof x === 'object') return String(x.id || x.name || '');
-        return String(x || '');
-      }).filter(Boolean);
-      var chosen = pickModel(ids, preferred);
-      if (chosen !== preferred) {
-        var el = document.getElementById('aiModel');
-        if (el) el.value = chosen;
+    var postHeaders = { 'Content-Type': 'application/json' };
+    for (var kk in auth) if (Object.prototype.hasOwnProperty.call(auth, kk)) postHeaders[kk] = auth[kk];
+
+    // 1) 模型列表只是可选增强：失败完全静默，绝不参与「配置是否成功」的判断。
+    //    （方舟的 /models 在浏览器直连下可能不返回 CORS，但 /chat/completions 是通的。）
+    try {
+      var mCtrl = typeof AbortController === 'function' ? new AbortController() : null;
+      var mOpts = { headers: auth };
+      if (mCtrl) mOpts.signal = mCtrl.signal;
+      var mTimer = setTimeout(function () { if (mCtrl) mCtrl.abort(); }, 8000);
+      fetch(modelsUrlFinal, mOpts).then(function (r) {
+        clearTimeout(mTimer);
+        return r.ok ? r.json() : Promise.reject(new Error('models ' + r.status));
+      }).then(function (d) {
+        var ids = (d.data || d.models || []).map(function (x) {
+          if (x && typeof x === 'object') return String(x.id || x.name || '');
+          return String(x || '');
+        }).filter(Boolean);
+        if (!ids.length) return;
+        var chosen = pickModel(ids, preferred);
+        if (chosen !== preferred) {
+          var el = document.getElementById('aiModel');
+          if (el) el.value = chosen;
+          try {
+            var c = JSON.parse(localStorage.getItem(AI_CFG) || '{}') || {};
+            c.model = chosen; localStorage.setItem(AI_CFG, JSON.stringify(c));
+          } catch (e) {}
+        }
         try {
-          var c = JSON.parse(localStorage.getItem(AI_CFG) || '{}') || {};
-          c.model = chosen; localStorage.setItem(AI_CFG, JSON.stringify(c));
+          var dl = document.getElementById('aiModelList');
+          if (dl) dl.innerHTML = ids.slice(0, 400).map(function (m) {
+            return '<option value="' + m.replace(/"/g, '&quot;') + '"></option>';
+          }).join('');
         } catch (e) {}
-      }
-      try {
-        var dl = document.getElementById('aiModelList');
-        if (dl) dl.innerHTML = ids.slice(0, 400).map(function (m) {
-          return '<option value="' + m.replace(/"/g, '&quot;') + '"></option>';
-        }).join('');
-      } catch (e) {}
-      setAiStatus('✓ 配置成功，模型「' + chosen + '」' +
-        (ids.length ? '（该账号可见 ' + ids.length + ' 个模型）' : '') + '。', true);
+      }).catch(function () { clearTimeout(mTimer); });
+    } catch (e) {}
+
+    // 2) 真正的自检：发一条极短对话，收到了回答才算「配置成功」。
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var opts = {
+      method: 'POST', headers: postHeaders,
+      body: JSON.stringify({ model: preferred,
+        messages: [{ role: 'user', content: 'hi' }], stream: false, temperature: 0.3 })
+    };
+    if (ctrl) opts.signal = ctrl.signal;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 15000);
+
+    fetch(chatUrlFinal, opts).then(function (r) {
+      clearTimeout(timer);
+      if (r.ok) return r.json();
+      return r.text().then(function (t) {
+        var err = new Error('HTTP ' + r.status);
+        err.status = r.status; err.body = String(t || '').slice(0, 200);
+        throw err;
+      });
+    }).then(function (d) {
+      if (!(d && d.choices && d.choices[0] && d.choices[0].message))
+        throw new Error('返回体里没有回答内容');
+      setAiStatus('✓ 配置成功，已验证可以对话。', true);
       configAlert('配置成功',
         '服务商：' + providerName() + '\n' +
-        '模型：' + chosen + '\n' +
+        '模型：' + preferred + '\n' +
         'API Key：已保存在当前浏览器' +
         (fromSnippet ? '\n来源：已从接入代码自动识别' : '') +
-        '\n\n可以开始提问了。');
-    }).catch(function () {
+        '\n\n已实际发送一条测试消息并收到回答，可以直接开始提问。');
+    }).catch(function (e) {
       clearTimeout(timer);
-      setAiStatus('✓ 配置已保存，使用默认模型「' + preferred + '」。', true);
-      configAlert('配置已保存（自动检测未通过）',
-        '已使用默认模型：' + preferred + '\n' +
-        '原因：该服务商未返回模型列表，多为浏览器跨域限制。\n\n' +
-        '配置仍然有效，可以直接提问；若报 Failed to fetch，说明该服务商不允许浏览器直连。');
+      var msg = String((e && e.message) || e || '');
+      var st = e && e.status;
+      var reason;
+      if (st === 401) reason = 'API Key 无效，或该模型未在服务商控制台开通。';
+      else if (st === 404) reason = '模型 ID 无效或已下线，请点「高级」改成当前在售 ID。';
+      else if (st === 429) reason = '免费额度已用尽或触发限流（安心体验模式下服务会自动暂停）。';
+      else if (/Failed to fetch|NetworkError|abort|Load failed/i.test(msg))
+        reason = '浏览器无法直连该服务商（CORS / 网络限制）。可换用支持跨域的服务商，或在本机 / 云端版使用服务转发。';
+      else if (st) reason = '服务商返回 HTTP ' + st + '：' + String(e.body || '').slice(0, 120);
+      else reason = '未能收到回答：' + msg.slice(0, 120);
+      setAiStatus('配置未通过验证：' + reason);
+      configAlert('配置未通过验证', reason +
+        '\n\nAPI Key 与设置已保存；修正后可再点「保存设置」重新验证。');
     });
   }
   function simplifyAiSetup() {
@@ -1135,8 +1175,8 @@
       localStorage.setItem(AI_CFG, JSON.stringify(
         { provider: pv, mode: 'direct', base: base, model: model }));
       localStorage.setItem(AI_KEY, key);
-      setAiStatus('✓ 已保存' + (fromSnippet ? '（已识别接入代码）' : '') + '，正在检测结果…', true);
-      detectModel(base, key, model, fromSnippet);
+      setAiStatus('已保存，正在发送一条极短测试消息验证配置…', true);
+      verifyConfig(base, key, model, fromSnippet);
     };
 
     var origClear = window.clearAiKey;
