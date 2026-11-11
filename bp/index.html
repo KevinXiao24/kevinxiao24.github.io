@@ -875,10 +875,32 @@
   };
 
   // ------------------------------------------------ 简化 API 配置（仅 git / 免安装版）
-  // 只保留「选服务商 + 填 Key」两项；保存时只向选中的那一家拉 /models 自动配模型。
+  // 只保留「选服务商 + 填 Key」两项；Key 框也支持直接粘贴厂商的接入示例代码。
   // 全部在适配层内完成，母版 index.html 与 icu 云端版完全不受影响。
   var AI_CFG = 'bp_ai_cfg_v1', AI_KEY = 'bp_ai_key_v1';
   var DEMO_MODEL = { doubao: 'doubao-seed-2-1-lite-260915' };
+  var HOST_MAP = [
+    [/ark\.cn-beijing\.volces\.com/i, 'doubao'],
+    [/api\.deepseek\.com/i, 'deepseek'],
+    [/dashscope\.aliyuncs\.com/i, 'qwen'],
+    [/api\.moonshot\.cn/i, 'moonshot'],
+    [/open\.bigmodel\.cn/i, 'zhipu'],
+    [/api\.minimaxi\.com/i, 'minimax'],
+    [/qianfan\.baidubce\.com/i, 'qianfan'],
+    [/api\.hunyuan\.cloud\.tencent\.com/i, 'hunyuan'],
+    [/api\.stepfun\.com/i, 'stepfun'],
+    [/api\.siliconflow\.cn/i, 'siliconflow'],
+    [/api\.openai\.com/i, 'openai'],
+    [/api\.anthropic\.com/i, 'anthropic'],
+    [/openrouter\.ai/i, 'openrouter'],
+    [/api\.groq\.com/i, 'groq'],
+    [/api\.together\.ai/i, 'together'],
+    [/integrate\.api\.nvidia\.com/i, 'nvidia'],
+    [/api\.x\.ai/i, 'xai'],
+    [/api\.mistral\.ai/i, 'mistral'],
+    [/api\.cerebras\.ai/i, 'cerebras']
+  ];
+  var KEY_PLACEHOLDER = /^(\$|YOUR|XXX|<|os\.|process\.|ENV|ARK_API_KEY|OPENAI_API_KEY|\.\.\.)|placeholder/i;
 
   function setAiStatus(text, good) {
     var el = document.getElementById('aiStatus');
@@ -888,9 +910,58 @@
     var el = document.getElementById(id);
     return el && el.closest ? el.closest('.full') : null;
   }
-  function showAdvancedLink() {
-    var a = document.getElementById('aiAdvancedToggle');
-    if (a) a.style.display = 'inline-block';
+  function configAlert(title, body) {
+    try { window.alert(title + '\n\n' + body); } catch (e) {}
+  }
+  function providerName() {
+    var sel = document.getElementById('aiProvider');
+    return (sel && sel.options[sel.selectedIndex])
+      ? sel.options[sel.selectedIndex].text : (sel ? sel.value : '自定义');
+  }
+  function normalizeBase(u) {
+    return String(u || '').replace(/[),;]+$/, '')
+      .replace(/\/(responses|models)(\?.*)?$/i, '')
+      .replace(/\/+$/, '');
+  }
+  function parseSnippet(text) {
+    var t = String(text || '').trim();
+    if (!/curl|https?:\/\/|Authorization|api_key|base_url|--header|--data|-H\s|-d\s|"model"|model\s*[:=]/i.test(t)) return null;
+    var out = { base: '', key: '', model: '', provider: '' };
+    var urls = t.match(/https?:\/\/[^\s'"`\\]+/g) || [];
+    for (var i = 0; i < urls.length; i++) {
+      var u = urls[i].replace(/[),;]+$/, '');
+      if (/\/(v\d+|api\/v\d+|api\/coding|v1beta|openai\/deployments)/i.test(u) ||
+          /\/chat\/completions|\/responses|\/models/i.test(u)) {
+        out.base = normalizeBase(u);
+        break;
+      }
+    }
+    var kp = [
+      /Bearer\s+([^\s'"\\,`)]+)/i,
+      /x-api-key["']?\s*[:=]\s*["']?([^\s'"\\,`)]+)/i,
+      /api[_-]?key["']?\s*[:=]\s*["']([^"']+)["']/i,
+      /["']api[_-]?key["']\s*:\s*["']([^"']+)["']/i
+    ];
+    for (var k = 0; k < kp.length; k++) {
+      var mk = t.match(kp[k]);
+      if (mk && mk[1]) { out.key = mk[1].replace(/["'\\]+$/, ''); break; }
+    }
+    if (KEY_PLACEHOLDER.test(out.key)) out.key = '';
+    var mp = [
+      /["']model["']\s*:\s*["']([^"']+)["']/i,
+      /model\s*=\s*["']([^"']+)["']/i,
+      /model\s*:\s*["']([^"']+)["']/i
+    ];
+    for (var n = 0; n < mp.length; n++) {
+      var mm = t.match(mp[n]);
+      if (mm && mm[1]) { out.model = mm[1]; break; }
+    }
+    if (out.base) {
+      for (var h = 0; h < HOST_MAP.length; h++) {
+        if (HOST_MAP[h][0].test(out.base)) { out.provider = HOST_MAP[h][1]; break; }
+      }
+    }
+    return out;
   }
   function pickModel(ids, preferred) {
     if (!ids.length || !preferred) return preferred;
@@ -909,7 +980,7 @@
     }
     return preferred;
   }
-  function detectModel(base, key, preferred) {
+  function detectModel(base, key, preferred, fromSnippet) {
     var url = base.replace(/\/chat\/completions.*$/, '').replace(/\/+$/, '') + '/models';
     var h = { 'Authorization': 'Bearer ' + key };
     if (/openai\.azure\.com|services\.ai\.azure\.com/.test(base)) h['api-key'] = key;
@@ -945,13 +1016,21 @@
           return '<option value="' + m.replace(/"/g, '&quot;') + '"></option>';
         }).join('');
       } catch (e) {}
-      setAiStatus('✓ 已保存，模型「' + chosen + '」' +
-        (ids.length ? '（该账号可见 ' + ids.length + ' 个模型）' : '') + '，可以开始提问了。', true);
+      setAiStatus('✓ 配置成功，模型「' + chosen + '」' +
+        (ids.length ? '（该账号可见 ' + ids.length + ' 个模型）' : '') + '。', true);
+      configAlert('配置成功',
+        '服务商：' + providerName() + '\n' +
+        '模型：' + chosen + '\n' +
+        'API Key：已保存在当前浏览器' +
+        (fromSnippet ? '\n来源：已从接入代码自动识别' : '') +
+        '\n\n可以开始提问了。');
     }).catch(function () {
       clearTimeout(timer);
-      setAiStatus('✓ 已保存，使用默认模型「' + preferred + '」。' +
-        '该服务商未返回模型列表（多为浏览器跨域限制），配置不受影响，直接提问试试即可。', true);
-      showAdvancedLink();
+      setAiStatus('✓ 配置已保存，使用默认模型「' + preferred + '」。', true);
+      configAlert('配置已保存（自动检测未通过）',
+        '已使用默认模型：' + preferred + '\n' +
+        '原因：该服务商未返回模型列表，多为浏览器跨域限制。\n\n' +
+        '配置仍然有效，可以直接提问；若报 Failed to fetch，说明该服务商不允许浏览器直连。');
     });
   }
   function simplifyAiSetup() {
@@ -959,11 +1038,11 @@
     if (!card) return;
     var note = card.querySelector('.ai-note');
     if (note) note.textContent =
-      '接入大模型，基于你的血压记录做智能答疑。选择服务商并填写 API Key 即可，模型会自动匹配。' +
+      '接入大模型，基于你的血压记录做智能答疑。选择服务商并填写 API Key 即可；也可直接粘贴厂商控制台的接入示例代码，自动识别地址、模型和密钥。' +
       'API Key 只保存在当前浏览器，不会上传或写入任何文件；清除浏览器数据、换浏览器或换设备后需重新填写。' +
       '问题与血压数据会发给你选的服务商，请勿输入其他隐私信息。AI 建议不能替代医生诊断。';
     var sum = card.querySelector('.ai-set > summary');
-    if (sum) sum.textContent = '⚙ API 设置（选服务商 + 填 Key，其余自动）';
+    if (sum) sum.textContent = '⚙ API 设置（选服务商 + 填 Key，或粘贴接入代码）';
 
     ['aiMode', 'aiBase', 'aiModel'].forEach(function (id) {
       var box = fullBox(id);
@@ -981,15 +1060,17 @@
       var a = document.createElement('a');
       a.id = 'aiAdvancedToggle'; a.href = '#';
       a.textContent = '高级：手动修改地址 / 模型';
-      a.setAttribute('style', 'display:none;font-size:12px;color:var(--sub);margin-top:8px');
+      a.setAttribute('style', 'font-size:12px;color:var(--sub);margin-top:8px;display:inline-block');
       a.onclick = function (ev) {
         ev.preventDefault();
+        var b = fullBox('aiBase');
+        var open = !!(b && b.style.display !== 'none');
         ['aiMode', 'aiBase', 'aiModel'].forEach(function (id) {
           var box = fullBox(id);
-          if (box) box.style.display = '';
+          if (box) box.style.display = open ? 'none' : '';
         });
-        a.style.display = 'none';
-        setAiStatus('已展开高级设置。修改后仍点「保存设置」。', true);
+        a.textContent = open ? '高级：手动修改地址 / 模型' : '收起高级设置';
+        setAiStatus(open ? '已收起高级设置。' : '已展开高级设置。修改后仍点「保存设置」。', true);
       };
       st.parentNode.insertBefore(a, st.nextSibling);
     }
@@ -1003,14 +1084,42 @@
         if (m) m.value = DEMO_MODEL[pv];
       }
       var h = document.getElementById('aiHint');
-      if (h) h.textContent = '保存时会自动检测该账号可用的模型，无需手填。';
+      if (h) h.textContent = '填 Key 或粘贴接入代码，保存后自动识别模型。';
     };
 
     window.saveAiCfg = function () {
-      var pv = (document.getElementById('aiProvider') || {}).value || '';
       var keyEl = document.getElementById('aiKey');
-      var key = ((keyEl && keyEl.value) || '').trim() || localStorage.getItem(AI_KEY) || '';
-      if (!key) { setAiStatus('请先填写 API Key。'); return; }
+      var raw = ((keyEl && keyEl.value) || '').trim();
+      var snippet = parseSnippet(raw);
+      var key = raw, fromSnippet = false;
+      if (snippet) {
+        fromSnippet = true;
+        if (snippet.base) {
+          var b0 = document.getElementById('aiBase'); if (b0) b0.value = snippet.base;
+        }
+        if (snippet.model) {
+          var m0 = document.getElementById('aiModel'); if (m0) m0.value = snippet.model;
+        }
+        if (snippet.provider) {
+          var sel0 = document.getElementById('aiProvider'); if (sel0) sel0.value = snippet.provider;
+        }
+        key = snippet.key || '';
+        if (keyEl) keyEl.value = key;
+        if (!key) {
+          setAiStatus('这段代码里没有真实 API Key，请单独复制 Key 填入。');
+          configAlert('配置未完成',
+            '已识别接入代码，但里面没有真实 API Key（常见于 $ARK_API_KEY、YOUR_API_KEY 这类环境变量占位符）。\n\n' +
+            '请从控制台单独复制 Key，粘贴到输入框后再点「保存设置」。');
+          return;
+        }
+      }
+      key = key || localStorage.getItem(AI_KEY) || '';
+      if (!key) {
+        setAiStatus('请先填写 API Key。');
+        configAlert('配置未完成', '请先填写 API Key，或粘贴厂商控制台的接入示例代码。');
+        return;
+      }
+      var pv = (document.getElementById('aiProvider') || {}).value || '';
       var bEl = document.getElementById('aiBase');
       var mEl = document.getElementById('aiModel');
       if ((!bEl || !bEl.value.trim()) || (!mEl || !mEl.value.trim())) {
@@ -1019,14 +1128,15 @@
       var base = ((bEl && bEl.value) || '').trim().replace(/\/+$/, '');
       var model = ((mEl && mEl.value) || '').trim();
       if (!base || !model) {
-        setAiStatus('该服务商没有内置地址或模型，请点「高级：手动修改地址 / 模型」填写。');
-        showAdvancedLink(); return;
+        setAiStatus('未能确定地址或模型，请展开「高级」填写。');
+        configAlert('配置未完成', '未能确定 API 地址或模型名。请点「高级：手动修改地址 / 模型」填写后保存。');
+        return;
       }
       localStorage.setItem(AI_CFG, JSON.stringify(
         { provider: pv, mode: 'direct', base: base, model: model }));
       localStorage.setItem(AI_KEY, key);
-      setAiStatus('✓ 已保存，正在检测可用模型…', true);
-      detectModel(base, key, model);
+      setAiStatus('✓ 已保存' + (fromSnippet ? '（已识别接入代码）' : '') + '，正在检测结果…', true);
+      detectModel(base, key, model, fromSnippet);
     };
 
     var origClear = window.clearAiKey;
@@ -1035,12 +1145,12 @@
       setAiStatus('密钥已清除。重新填写后点「保存设置」即可。', true);
     };
 
-    var b0 = document.getElementById('aiBase');
-    if (b0 && !b0.value.trim() && typeof window.applyProvider === 'function') {
+    var bInit = document.getElementById('aiBase');
+    if (bInit && !bInit.value.trim() && typeof window.applyProvider === 'function') {
       window.applyProvider();
     } else {
-      var h0 = document.getElementById('aiHint');
-      if (h0) h0.textContent = '保存时会自动检测该账号可用的模型，无需手填。';
+      var hInit = document.getElementById('aiHint');
+      if (hInit) hInit.textContent = '填 Key 或粘贴接入代码，保存后自动识别模型。';
     }
   }
 
