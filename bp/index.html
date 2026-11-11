@@ -801,8 +801,14 @@
 
   window.fetch = function (input, opt) {
     var url = (typeof input === 'string') ? input : ((input && input.url) || '');
+    // 外部绝对地址一律放行。火山方舟的 Base URL 是 /api/v3，若不做这一步，
+    // 下面的 /api/ 匹配会把 chat/completions 与 models 误判成本地接口，
+    // 返回 {"error":"not found"} 404（2026-11-11 访客测试实测踩过）。
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url) || url.slice(0, 2) === '//') {
+      return nativeFetch(input, opt);
+    }
     var m = url.match(/\/api\/([a-z]+)/i);
-    if (!m) return nativeFetch(input, opt);   // 外部 AI / models 请求原样放行
+    if (!m) return nativeFetch(input, opt);   // 其余请求原样放行
 
     var ep = m[1];
     var method = String((opt && opt.method) || 'GET').toUpperCase();
@@ -2006,7 +2012,7 @@ async function sendAi(){
       const errTxt = await resp.text();
       thinking.classList.remove('thinking');
       thinking.textContent = '请求失败（'+resp.status+'）：' + errTxt.slice(0,300)
-        + (useProxy ? '' : '\n若提示跨域 / Failed to fetch，请到 API 设置改成「服务转发」模式。');
+        + (useProxy ? '' : '\n若是 Failed to fetch / CORS，说明该服务商不允许浏览器直连；可换用支持跨域的服务商，或在支持服务转发的版本里开启转发。');
       return;
     }
     const data = await resp.json();
@@ -2019,7 +2025,7 @@ async function sendAi(){
   }catch(e){
     thinking.classList.remove('thinking');
     thinking.textContent = '网络或调用出错：' + e.message
-      + '\n（建议到 API 设置改成「服务转发」模式，可绕开浏览器跨域限制）';
+      + '\n（该服务商可能不允许浏览器直连；可换用支持跨域的服务商）';
   }
 }
 
