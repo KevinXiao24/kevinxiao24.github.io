@@ -51,7 +51,7 @@
   .pageFoot a{color:#9e9e9e;text-decoration:none;border-bottom:1px dotted #3a3a3a;}
   .pageFoot a:hover{color:var(--accent);border-color:var(--accent);}
 
-  /* =====  浮动调试条（Ctrl+Shift+D 切换） ===== */
+  /* ===== v2.9 浮动调试条（Ctrl+Shift+D 切换） ===== */
   #dbg{position:fixed;left:12px;bottom:12px;z-index:99999;background:rgba(15,23,42,.92);
     color:#e2e8f0;font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
     padding:8px 10px;border-radius:6px;display:none;min-width:240px;
@@ -119,7 +119,7 @@
   .flat{color:#7a7a7a;}
   .km .up,.km .down,.km .flat{font-size:10.5px;}
 
-  /* =====  Pad 中间档（768–1024px）：仍走 PC 左右分栏，但收窄侧栏 =====
+  /* ===== v2.10 Pad 中间档（768–1024px）：仍走 PC 左右分栏，但收窄侧栏 =====
      iPad 竖屏 768 / 820 / 834px，iPad mini 744px(走手机档)，
      iPad 横屏 1024 / 1180 / 1194 / 1366px（≥1025 走标准 PC 档）。
      此区间若沿用 PC 的 420px 侧栏，地图只剩 ~348px 会被挤爆，故压缩到 320px。 */
@@ -151,13 +151,13 @@
     aside{flex:1 1 auto;min-height:0;border-left:none;display:flex;flex-direction:column;}
     #panel{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;}
 
-    /* 移动端动态上下分栏 —— 谁被操作谁占 2/3
+    /* v2.9：移动端动态上下分栏 —— 谁被操作谁占 2/3
        - 手指操作上方地图 → 地图 66vh（约 2/3），卡片 33vh
        - 手指操作下方卡片 → 卡片 66vh（约 2/3），地图 33vh */
     body.mob-focus-map   #mapWrap{height:66vh !important;min-height:300px;max-height:70vh;}
     body.mob-focus-panel #mapWrap{height:33vh !important;min-height:140px;max-height:36vh;}
 
-    /* 移动端隐藏「全览」「展开全部」两个按钮（PC 端保留） */
+    /* v2.9：移动端隐藏「全览」「展开全部」两个按钮（PC 端保留） */
     #btns{display:none !important;}
 
     .legendBar{font-size:10.5px;padding:6px 8px;gap:8px;}
@@ -305,7 +305,7 @@ var DAY_ALT = [
 
 /* 移动端真实路径规划只跑一次，避免每次切视图重复请求 */
 var realRoutesTried = false;
-/* 断点 880 → 767
+/* v2.10：断点 880 → 767
    < 768px  手机竖屏（上下分栏 + 动态 2/3 分栏）
    768-1023 Pad 竖屏 / 小笔记本（左右分栏，aside 收窄到 340px）
    >= 1024  PC / Pad 横屏（左右分栏，aside 420px）
@@ -637,7 +637,7 @@ function init(){
     rotationEnable: false,          /* 禁止旋转 —— 地图永远正北 */
     zoomEnable: true,               /* 保留手势缩放 */
     dragEnable: true,               /* 保留拖拽 */
-    preserveDrawingBuffer: true     /* 保留 GL 帧缓冲，使 canvas.toDataURL() 能抓出地图画面供「导出图片」使用 */
+    preserveDrawingBuffer: true     /* v2.7.2：保留 GL 帧缓冲，使 canvas.toDataURL() 能抓出地图画面供「导出图片」使用 */
   });
 
   var styles = {}, geoms = [], dotGeoms = [], i;
@@ -670,7 +670,7 @@ function init(){
     if(n >= 1 && n <= DAYS.length) toggleDay(n, true);
   });
 
-  /* 选中路线高亮改用各天自身颜色加粗（不再统一橙色，与小程序一致） */
+  /* v2.1.1：选中路线高亮改用各天自身颜色加粗（不再统一橙色，与小程序一致） */
   var hiStyles = {};
   for(i=0;i<DAYS.length;i++){
     hiStyles['hi'+(i+1)] = new TMap.PolylineStyle({ color: COLORS[i], width:9, lineCap:'round' });
@@ -716,7 +716,7 @@ function init(){
   setTimeout(showAll, 1500);                                /* 中段校正 */
   setTimeout(showAll, 2800);                                /* 地址栏完全收起后兜底 */
 
-  /* =====  调试输出：打开页面后请按 F12 / Cmd+Opt+I 打开控制台看 =====
+  /* ===== v2.9 调试输出：打开页面后请按 F12 / Cmd+Opt+I 打开控制台看 =====
      如果「地图仍偏左」或「移动端不全览」，请截图这一段 console 输出发我 */
   function diag(tag){
     var wrap = document.getElementById('mapWrap');
@@ -795,7 +795,7 @@ function focusDay(n, fromMap){
   }
   hiLine.setGeometries([{ styleId:'hi'+n, paths: pts }]);
 
-  /* 移动端动态分栏 ——
+  /* v2.9：移动端动态分栏 ——
        - 手指点地图上的图钉（fromMap）→ 地图占 2/3
        - 手指点下方卡片 → 卡片占 2/3（地图缩到 1/3） */
   var isMob = isMobileView();
@@ -848,7 +848,7 @@ function calcZoomForBounds(b, containerW, containerH, padding){
   var availW = containerW - padding.left - padding.right;
   var availH = containerH - padding.top - padding.bottom;
   if(availW <= 0 || availH <= 0) return 6;
-  /*  关键修正 —— 之前分子分母写反了！
+  /* v2.7.1 关键修正 —— 之前分子分母写反了！
      TMap web 墨卡托：1 像素 = 156543.03 × cos(lat) / 2^zoom 米
      推导：要使 span 米数 占满 avail 像素：
        z ≤ log2(avail × 156543 × cosLat / span_meters)
@@ -867,7 +867,7 @@ function calcZoomForBounds(b, containerW, containerH, padding){
 
 function showAll(){
   activeDay = 0;
-  /* 清除移动端分栏聚焦状态，mapWrap 高度回到默认 45vh */
+  /* v2.9：清除移动端分栏聚焦状态，mapWrap 高度回到默认 45vh */
   try{ clearMobFocus(); }catch(e){}
   hiLine.setGeometries([]);
   Array.prototype.forEach.call(panel.querySelectorAll('.day'), function(el){ el.classList.remove('on'); });
@@ -898,9 +898,9 @@ function showAll(){
   }catch(e){}
 }
 
-/* 移除「播放全程」与「导出图片」功能 —— 按钮 DOM、togglePlay/setPlayBtn/exportPNG/exportPDF/buildExportMarkup/fetchStaticMap 全部删除 */
+/* v2.8：移除「播放全程」与「导出图片」功能 —— 按钮 DOM、togglePlay/setPlayBtn/exportPNG/exportPDF/buildExportMarkup/fetchStaticMap 全部删除 */
 
-/* ===== 移动端动态上下分栏 =====
+/* ===== v2.9：移动端动态上下分栏 =====
    手指操作哪一半，哪一半就占屏幕 2/3：
      'map'   → 上方地图 66vh，下方卡片 33vh
      'panel' → 下方卡片 66vh，上方地图 33vh
@@ -977,7 +977,7 @@ function refitAfterResize(){
   refitTimer = setTimeout(refitView, 220);
 }
 
-/* 只重算 zoom/center，不改变 activeDay / 移动端分栏状态。
+/* v2.9：只重算 zoom/center，不改变 activeDay / 移动端分栏状态。
    注意：这里**不能**调 showAll() / focusDay() —— 那会清掉 setMobFocus 刚设的
    mob-focus-xxx（showAll 里有 clearMobFocus），导致分栏高度立刻被复原。 */
 function refitView(){
@@ -1075,7 +1075,7 @@ setTimeout(function(){
 }, 3000);
 </script>
 <script>
-/* 腾讯地图版权标注 缩小+压暗（保持可见可读；遵守腾讯地图API服务条款4.3，不作隐藏/删除） */
+/* v1.1.3：腾讯地图版权标注 缩小+压暗（保持可见可读；遵守腾讯地图API服务条款4.3，不作隐藏/删除） */
 (function(){
   var css=document.createElement('style');
   css.textContent='#map a[href*="qq.com"]{transform:scale(.6);transform-origin:left bottom;filter:grayscale(.6) brightness(.75);opacity:.72;}';
