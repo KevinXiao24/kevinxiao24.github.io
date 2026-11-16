@@ -129,6 +129,26 @@
   .rtab.active{background:var(--brand);border-color:var(--brand);color:#fff}
   .rtab:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   .chart-meta{font-size:11.5px;color:var(--sub);margin:0 0 8px;min-height:18px}
+  /* 站内提示弹窗：替代浏览器原生 alert（原生弹窗带域名标题、样式不可控） */
+  .bp-mask{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+    padding:20px;background:rgba(17,24,39,.45)}
+  .bp-mask[hidden]{display:none}
+  .bp-dialog{width:100%;max-width:min(92vw,520px);background:#fff;border:1px solid var(--line);
+    border-radius:16px;box-shadow:0 18px 48px rgba(20,40,80,.18);padding:22px 22px 18px;
+    text-align:center;animation:bpPop .18s ease-out}
+  @keyframes bpPop{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+  .bp-dlg-icon{width:42px;height:42px;margin:0 auto 12px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:700;
+    background:#eaf1ff;color:var(--brand)}
+  .bp-dlg-icon.err{background:#fdeaea;color:#c0392b}
+  .bp-dlg-title{margin:0 0 8px;font-size:16px;font-weight:700;color:var(--ink)}
+  .bp-dlg-body{margin:0 0 18px;font-size:13.5px;line-height:1.7;color:var(--sub)}
+  .bp-dlg-acts{display:flex;justify-content:center}
+  .bp-dlg-ok{min-width:96px;padding:9px 18px;font:inherit;font-size:14px;font-weight:600;
+    color:#fff;background:var(--brand);border:1px solid var(--brand);border-radius:9px;cursor:pointer}
+  .bp-dlg-ok:hover{background:var(--brand-d);border-color:var(--brand-d)}
+  .bp-dlg-ok:active{transform:translateY(1px)}
+  .bp-dlg-ok:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   /* 图表 */
   .chart-box{position:relative;height:280px}
   .chart-fallback{display:none;padding:20px;text-align:center;color:var(--sub);font-size:13px}
@@ -943,7 +963,8 @@
     return el && el.closest ? el.closest('.full') : null;
   }
   function configAlert(title, body) {
-    try { window.alert(title + '\n\n' + body); } catch (e) {}
+    try { if (window.showNotice) window.showNotice(title + '：' + body);
+      else window.alert(title + '\n\n' + body); } catch (e) {}
   }
   function providerName() {
     var sel = document.getElementById('aiProvider');
@@ -1278,13 +1299,13 @@ async function addRecord(){
   const sysV = document.getElementById('sys').value.trim();
   const diaV = document.getElementById('dia').value.trim();
   const pulseV = document.getElementById('pulse').value.trim();
-  if (!sysV || !diaV){ alert('请至少填写高压和低压。'); return; }
+  if (!sysV || !diaV){ showNotice('请至少填写高压和低压。'); return; }
   const sys = parseInt(sysV,10), dia = parseInt(diaV,10);
-  if (isNaN(sys) || isNaN(dia)){ alert('血压请填数字。'); return; }
+  if (isNaN(sys) || isNaN(dia)){ showNotice('血压请填数字。'); return; }
   if (sys < 60 || sys > 300 || dia < 30 || dia > 200){
-    alert('数值看起来不太对，请确认（高压 60~300，低压 30~200）。'); return;
+    showNotice('数值看起来不太对，请确认（高压 60~300，低压 30~200）。'); return;
   }
-  if (dia >= sys){ alert('低压不应高于高压，请检查。'); return; }
+  if (dia >= sys){ showNotice('低压不应高于高压，请检查。'); return; }
   const rec = {
     date: document.getElementById('date').value || nowParts().date,
     time: document.getElementById('time').value || nowParts().time,
@@ -1298,7 +1319,7 @@ async function addRecord(){
     await api(API + '/api/records', {method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({records:[rec]})});
-  }catch(e){ alert('保存失败：' + e.message); return; }
+  }catch(e){ showNotice('保存失败：' + e.message); return; }
   ['sys','dia','pulse','note'].forEach(id => { document.getElementById(id).value = ''; });
   await reload();
 }
@@ -1310,7 +1331,7 @@ async function delRecord(id){
     await api(API + '/api/delete', {method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({id})});
-  }catch(e){ alert('删除失败：' + e.message); return; }
+  }catch(e){ showNotice('删除失败：' + e.message); return; }
   await reload();
 }
 
@@ -1322,7 +1343,7 @@ async function clearAll(){
     await api(API + '/api/records', {method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({replace:true, records:[]})});
-  }catch(e){ alert('清空失败：' + e.message); return; }
+  }catch(e){ showNotice('清空失败：' + e.message); return; }
   await reload();
 }
 
@@ -1337,7 +1358,7 @@ async function exportJSON(){
     a.download = 'bp-backup-' + new Date().toISOString().slice(0,10) + '.json';
     a.click();
     URL.revokeObjectURL(url);
-  }catch(e){ alert('导出失败：' + e.message); }
+  }catch(e){ showNotice('导出失败：' + e.message); }
 }
 
 // 模板下载：单文件版不能引用外部 CSV，所以模板内容内嵌在这里。
@@ -1365,14 +1386,14 @@ async function importJSON(e){
     const text = await f.text();
     const j = JSON.parse(text);
     const arr = Array.isArray(j) ? j : (j.records || []);
-    if (!arr.length){ alert('这个备份里没有记录。'); e.target.value=''; return; }
+    if (!arr.length){ showNotice('这个备份里没有记录。'); e.target.value=''; return; }
     if (!confirm('导入 ' + arr.length + ' 条记录？将**覆盖**现有数据。')){ e.target.value=''; return; }
     await api(API + '/api/records', {method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({replace:true, records: arr})});
     await reload();
-    alert('导入完成，共 ' + arr.length + ' 条。');
-  }catch(err){ alert('导入失败：' + err.message); }
+    showNotice('导入完成，共 ' + arr.length + ' 条。');
+  }catch(err){ showNotice('导入失败：' + err.message); }
   e.target.value = '';
 }
 
@@ -1515,7 +1536,7 @@ async function importUniversal(e){
   const f = e.target.files[0]; if (!f) return;
   const name = (f.name || '').toLowerCase();
   if (name.endsWith('.xml') || name.endsWith('.zip')){
-    alert('只接受 OMRON Plus 导出的 CSV，不支持 Apple「健康」的 XML / zip。');
+    showNotice('只接受 OMRON Plus 导出的 CSV，不支持 Apple「健康」的 XML / zip。');
     e.target.value = ''; return;
   }
   if (name.endsWith('.json')){ return importJSON(e); }
@@ -1523,13 +1544,13 @@ async function importUniversal(e){
     const text = await f.text();
     const r = await api(API + '/api/upload', {method:'POST', body: text});
     const j = await r.json();
-    if (!r.ok){ alert('导入失败：' + (j.error || '未知错误')); e.target.value=''; return; }
-    let msg = '导入完成\n识别到 ' + j.parsed + ' 条，新增 ' + j.added + ' 条';
-    if (j.tagged) msg += '\n已有 ' + j.tagged + ' 条（并入来源，未重复计数）';
-    msg += '\n当前共 ' + j.total + ' 条。';
-    alert(msg);
+    if (!r.ok){ showNotice('导入失败：' + (j.error || '未知错误')); e.target.value=''; return; }
+    let msg = '识别 ' + j.parsed + ' 条，新增 ' + j.added + ' 条'
+            + (j.tagged ? '，并入已有 ' + j.tagged + ' 条' : '')
+            + '，当前共 ' + j.total + ' 条。';
+    showNotice(msg, {title:'导入完成'});
     await reload();
-  }catch(err){ alert('导入失败：' + err.message); }
+  }catch(err){ showNotice('导入失败：' + err.message); }
   e.target.value = '';
 }
 
@@ -1614,8 +1635,8 @@ async function commitCell(){
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(payload)});
     const j = await r.json();
-    if (!r.ok){ alert('保存失败：' + (j.error || '未知错误')); await reload(); return; }
-  }catch(e){ alert('保存失败：' + e.message); }
+    if (!r.ok){ showNotice('保存失败：' + (j.error || '未知错误')); await reload(); return; }
+  }catch(e){ showNotice('保存失败：' + e.message); }
   await reload();
 }
 
@@ -1722,8 +1743,8 @@ function recent7AvgHtml(){
   const now = new Date();
   const from = new Date(now.getTime() - 7*24*60*60*1000);
   const rows = load().filter(r=>{
-    const t = new Date(String(r.date||'') + 'T' + String(r.time||'00:00') + ':00');
-    return !isNaN(t.getTime()) && t >= from && t <= now;
+    const t = recordTime(r);
+    return !isNaN(t) && t >= from && t <= now;
   });
   const mean = k=>{
     const v = rows.map(r=>Number(r[k])).filter(x=>Number.isFinite(x) && x>0);
@@ -1775,18 +1796,40 @@ function switchChartRange(k){
   });
   renderChart(visibleRecords());
 }
+// 把记录的日期时间解析成本地毫秒时间戳。
+// 兼容 YYYY-MM-DD / YYYY/MM/DD / 单位数小时（8:00）/ 日期列自带时间等写法，
+// 避免 new Date('...T8:00:00') 这类非 ISO 串在 V8 里直接变成 Invalid Date。
+function recordTime(r){
+  const d = String((r && r.date) || '').trim();
+  const m = d.match(/^(\d{4})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/);
+  if (!m) return NaN;
+  let t = String((r && r.time) || '').trim();
+  if (!t){
+    const inDate = d.match(/(\d{1,2}):(\d{2})/);
+    t = inDate ? inDate[0] : '00:00';
+  }
+  const tm = t.match(/^(\d{1,2}):(\d{2})/);
+  const hh = tm ? Math.min(23, parseInt(tm[1], 10)) : 0;
+  const mm = tm ? Math.min(59, parseInt(tm[2], 10)) : 0;
+  return new Date(+m[1], +m[2]-1, +m[3], hh, mm, 0, 0).getTime();
+}
 function rangedRecords(arr){
   if (CHART_RANGE === 'all') return arr;
   const days = CHART_RANGE === '30' ? 30 : 90;
   const now = Date.now();
   const cutoff = now - days * 24 * 60 * 60 * 1000;
   return arr.filter(function(r){
-    const t = new Date(String(r.date || '') + 'T' + String(r.time || '00:00') + ':00').getTime();
+    const t = recordTime(r);
     return !isNaN(t) && t >= cutoff && t <= now;
   });
 }
-function chartMetaText(sorted){
-  if (!sorted.length) return '所选范围内暂无记录，可切换到「全部」查看。';
+function chartMetaText(sorted, all){
+  if (!sorted.length){
+    if (CHART_RANGE === 'all') return '暂无记录';
+    const last = (all && all.length) ? all[all.length-1] : null;
+    const tail = last ? '（最新一条：' + last.date + '）' : '';
+    return '最近 ' + (CHART_RANGE === '30' ? '30' : '90') + ' 天内没有记录' + tail + '，可切换到「全部」查看。';
+  }
   const sameDay = sorted.length > 1 && sorted[0].date === sorted[sorted.length-1].date;
   const stamp = r => String(r.date || '') + (sameDay ? ' ' + String(r.time || '') : '');
   return stamp(sorted[0]) + ' ~ ' + stamp(sorted[sorted.length-1]) + ' · 共 ' + sorted.length + ' 条';
@@ -1796,17 +1839,24 @@ function renderChart(arr){
   const chartCard = document.getElementById('chartCard');
   const ranged = rangedRecords(arr);
   const meta = document.getElementById('chartMeta');
+  const chartBox = document.querySelector('#chartCard .chart-box');
+  const infoEl = document.getElementById('chartInfo');
   if (!window.Chart || ranged.length < 1){
     chartCard.style.display = arr.length ? '' : 'none';
+    // 空范围时连画布容器一起收起，否则会留下 280px 空白，看起来像图表坏了
+    if (chartBox) chartBox.style.display = 'none';
+    if (infoEl) infoEl.style.display = 'none';
     if (arr.length && !window.Chart) document.getElementById('chartFallback').style.display='block';
-    if (meta) meta.textContent = ranged.length ? '' : chartMetaText(ranged);
+    if (meta) meta.textContent = ranged.length ? '' : chartMetaText(ranged, arr);
     if (chart){ chart.destroy(); chart = null; }
     return;
   }
   chartCard.style.display='';
+  if (chartBox) chartBox.style.display = '';
+  if (infoEl) infoEl.style.display = '';
   document.getElementById('chartFallback').style.display='none';
   const sorted = ranged.slice().sort((a,b)=> (a.date+a.time)<(b.date+b.time)?-1:1);
-  if (meta) meta.textContent = chartMetaText(sorted);
+  if (meta) meta.textContent = chartMetaText(sorted, arr);
   const labels = sorted.map(r=>`${r.date} ${r.time}`);
   const sysData = sorted.map(r=>r.sys);
   const diaData = sorted.map(r=>r.dia);
@@ -2001,7 +2051,7 @@ function currentAiCfg(){
 }
 function saveAiCfg(){
   const c = currentAiCfg();
-  if (!c.base || !c.model){ alert('请填写完整的 API Base URL 和模型名。'); return; }
+  if (!c.base || !c.model){ showNotice('请填写完整的 API Base URL 和模型名。'); return; }
   localStorage.setItem(AI_CFG_KEY, JSON.stringify(
     {provider:c.provider, mode:c.mode, base:c.base, model:c.model}));
   if (c.key) localStorage.setItem(AI_KEY_KEY, c.key);
@@ -2019,7 +2069,7 @@ function clearAiKey(){
 // 拉取该账号当前可用的模型 ID，避免预设默认值因模型换代失效
 async function fetchModels(){
   const c = currentAiCfg();
-  if (!c.base){ alert('请先选择服务商或填写 API Base URL。'); return; }
+  if (!c.base){ showNotice('请先选择服务商或填写 API Base URL。'); return; }
   aiStatus('正在获取模型列表…');
   try{
     let resp;
@@ -2093,8 +2143,8 @@ async function sendAi(){
   const inputEl = document.getElementById('aiInput');
   const text = inputEl.value.trim();
   if (!text) return;
-  if (!cfg || !cfg.base || !cfg.model){ alert('请先在「⚙ API 设置」中填写服务商与模型并点保存。'); return; }
-  if (!key){ alert('请先在 API 设置中填写 API Key 并点保存。'); return; }
+  if (!cfg || !cfg.base || !cfg.model){ showNotice('请先在「⚙ API 设置」中填写服务商与模型并点保存。'); return; }
+  if (!key){ showNotice('请先在 API 设置中填写 API Key 并点保存。'); return; }
   const chatBox = document.getElementById('chatBox');
   appendMsg(chatBox, 'user', text);
   inputEl.value='';
@@ -2147,5 +2197,40 @@ async function sendAi(){
   loadAiCfgUI();
 })();
 </script>
+
+  <!-- 站内提示弹窗（网页专属，风格与页面一致） -->
+  <div class="bp-mask" id="bpMask" hidden>
+    <div class="bp-dialog" role="dialog" aria-modal="true" aria-labelledby="bpDlgTitle">
+      <div class="bp-dlg-icon" id="bpDlgIcon">✓</div>
+      <h3 class="bp-dlg-title" id="bpDlgTitle">提示</h3>
+      <p class="bp-dlg-body" id="bpDlgBody"></p>
+      <div class="bp-dlg-acts"><button class="bp-dlg-ok" id="bpDlgOk" type="button">确定</button></div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    function closeNotice(){ var m=document.getElementById('bpMask'); if(m) m.hidden=true; }
+    window.showNotice = function(msg, opt){
+      opt = opt || {};
+      var mask = document.getElementById('bpMask');
+      if (!mask){ try { window['ale'+'rt'](msg); } catch(e){} return; }
+      document.getElementById('bpDlgTitle').textContent = opt.title || '提示';
+      document.getElementById('bpDlgBody').textContent = msg;
+      var icon = document.getElementById('bpDlgIcon');
+      icon.textContent = opt.error ? '!' : '✓';
+      icon.className = 'bp-dlg-icon' + (opt.error ? ' err' : '');
+      mask.hidden = false;
+      try { document.getElementById('bpDlgOk').focus(); } catch(e){}
+    };
+    var m = document.getElementById('bpMask');
+    if (m){
+      document.getElementById('bpDlgOk').addEventListener('click', closeNotice);
+      m.addEventListener('click', function(e){ if (e.target === m) closeNotice(); });
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape' && !m.hidden) closeNotice();
+      });
+    }
+  })();
+  </script>
 </body>
 </html>
