@@ -1738,15 +1738,13 @@ function render(){
 // 浮层会正好被手指盖住；放到图表外面就永远不会挡。
 let CHART_SEL_IDX = -1;   // 信息条当前显示的是第几个点
 
-// 以数据里最新一条记录为锚点，统计最后 7 天的平均值
-// （与趋势图 30/90 天口径一致；不受标签卡筛选影响）
+// 以当前电脑时间为基准，统计最近 7 天的平均值（不受标签卡筛选影响）
 function recent7AvgHtml(){
-  const all = load();
-  const anchor = anchorTime(all);
-  const from = anchor - 7*24*60*60*1000;
-  const rows = all.filter(r=>{
+  const now = Date.now();
+  const from = now - 7*24*60*60*1000;
+  const rows = load().filter(r=>{
     const t = recordTime(r);
-    return !isNaN(t) && t >= from && t <= anchor;
+    return !isNaN(t) && t >= from && t <= now;
   });
   const mean = k=>{
     const v = rows.map(r=>Number(r[k])).filter(x=>Number.isFinite(x) && x>0);
@@ -1815,27 +1813,18 @@ function recordTime(r){
   const mm = tm ? Math.min(59, parseInt(tm[2], 10)) : 0;
   return new Date(+m[1], +m[2]-1, +m[3], hh, mm, 0, 0).getTime();
 }
-// 所有「近 N 天」口径统一以数据里最新一条记录为锚点，不以今天为基准，
-// 否则历史数据会整档空白。
-function anchorTime(arr){
-  let anchor = -Infinity;
-  (arr || []).forEach(function(r){
-    const t = recordTime(r);
-    if (!isNaN(t) && t > anchor) anchor = t;
-  });
-  return isFinite(anchor) ? anchor : Date.now();
-}
 function rangedRecords(arr){
   if (CHART_RANGE === 'all') return arr;
   const days = CHART_RANGE === '30' ? 30 : 90;
-  // 「30天」= X <= 30、「90天」= X <= 90，X 是每条记录距锚点的天数。
-  // 只有 10 天数据也照常全展示，不会因为不满 30 天就空白。
-  const anchor = anchorTime(arr);
-  const cutoff = anchor - days * 24 * 60 * 60 * 1000;
+  // X = 每条记录距今天的天数。三档只按天数判断：
+  // 「30天」= X <= 30、「90天」= X <= 90、「全部」不限。
+  // 与记录条数无关，也不要求数据凑满 30 天。
+  const now = Date.now();
+  const cutoff = now - days * 24 * 60 * 60 * 1000;
   return arr.filter(function(r){
     const t = recordTime(r);
     // 时间解析失败的记录不擅自丢掉
-    return isNaN(t) || (t >= cutoff && t <= anchor);
+    return isNaN(t) || (t >= cutoff && t <= now);
   });
 }
 function chartMetaText(sorted, all){
