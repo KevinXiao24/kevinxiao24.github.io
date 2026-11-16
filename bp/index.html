@@ -1749,12 +1749,15 @@ function render(){
 let CHART_SEL_IDX = -1;   // 信息条当前显示的是第几个点
 
 // 以今天 00:00 为锚点，按自然日统计（不精确到小时滚动）。
-// 与趋势图 30/90 天同一套 X <= days 判定，这里 days=7；不受标签卡筛选影响。
+// 「近 7 日」= 已经完全结束的 7 个自然日：X = 1..7，不含今天（X=0）。
+// 例如今天 11/16 → 只统计 11/09~11/15。今天还没结束、晚上可能继续测，
+// 含今天会让均值在一天内不停变动；这里只统计不再变化的数据。
+// ⛔ 与趋势图 30/90 天不同：展示分档仍含今天（X >= 0）。不受标签卡筛选影响。
 function recent7AvgHtml(){
   const today = todayStartMs();
   const rows = load().filter(r=>{
     const X = daysFromToday(r, today);
-    return !isNaN(X) && X >= 0 && X <= 7;
+    return !isNaN(X) && X >= 1 && X <= 7;
   });
   const mean = k=>{
     const v = rows.map(r=>Number(r[k])).filter(x=>Number.isFinite(x) && x>0);
@@ -1795,7 +1798,8 @@ function showChartPoint(elements, sorted){
 
 
 // 趋势图时间范围：30 天 / 90 天 / 全部。按真实日历天数过滤，
-// 以当前电脑时间为基准（与「近 7 日均值」一致），默认「全部」不截断。
+// 以今天 00:00 为锚点，默认「全部」不截断。分档含今天（X >= 0）；
+// ⛔ 「近 7 日均值」是统计值、不含今天（X >= 1），两者不要混用。
 let CHART_RANGE = 'all';
 function switchChartRange(k){
   if (!k || k === CHART_RANGE) return;
