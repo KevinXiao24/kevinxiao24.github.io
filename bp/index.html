@@ -103,10 +103,11 @@
   .row .btn{flex:1 1 auto;min-width:0;white-space:nowrap}
   /* 状态卡 */
   .status{display:flex;align-items:center;gap:14px}
-  .status .badge{width:64px;height:64px;border-radius:16px;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;color:#fff;font-weight:700;flex:none}
+  .status .badge{min-width:112px;height:64px;padding:0 12px;border-radius:16px;
+    display:flex;flex-direction:row;align-items:center;justify-content:center;
+    gap:2px;color:#fff;font-weight:700;flex:none;box-sizing:border-box}
   .status .badge .num{font-size:22px;line-height:1}
-  .status .badge .lbl{font-size:11px;margin-top:2px;opacity:.92}
+  .status .badge .sep{font-size:22px;line-height:1;opacity:.9;font-weight:600}
   .status .info .lv{font-size:17px;font-weight:700}
   .status .info .meta{font-size:13px;color:var(--sub);margin-top:2px}
   .status .info .advice{font-size:13px;margin-top:6px;color:var(--ink)}
@@ -120,6 +121,14 @@
   .stat{background:#f7f9fc;border:1px solid var(--line);border-radius:11px;padding:11px;text-align:center}
   .stat .v{font-size:20px;font-weight:700}
   .stat .k{font-size:12px;color:var(--sub);margin-top:2px}
+  /* 趋势图时间范围切换：30天 / 90天 / 全部 */
+  .range-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+  .rtab{font:inherit;font-size:12px;font-weight:600;line-height:1.2;padding:6px 12px;
+    border:1px solid var(--line);background:#fff;border-radius:8px;color:var(--ink);cursor:pointer}
+  .rtab:hover{border-color:#c3d2ee;color:var(--brand-d)}
+  .rtab.active{background:var(--brand);border-color:var(--brand);color:#fff}
+  .rtab:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .chart-meta{font-size:11.5px;color:var(--sub);margin:0 0 8px;min-height:18px}
   /* 图表 */
   .chart-box{position:relative;height:280px}
   .chart-fallback{display:none;padding:20px;text-align:center;color:var(--sub);font-size:13px}
@@ -364,7 +373,7 @@
   <section class="card" id="statusCard" style="display:none">
     <h2><span class="dot"></span>最近一次 · 分级结果</h2>
     <div class="status">
-      <div class="badge" id="badge"><span class="num" id="badgeNum">--</span><span class="lbl" id="badgeLbl">未测</span></div>
+      <div class="badge" id="badge"><span class="num" id="badgeNum">--</span><span class="sep">/</span><span class="num" id="badgeDia">--</span></div>
       <div class="info">
         <div class="lv" id="lvName">暂无数据</div>
         <div class="meta" id="lvMeta"></div>
@@ -388,12 +397,18 @@
   <!-- 趋势图 -->
   <section class="card" id="chartCard" style="display:none">
     <h2><span class="dot"></span>血压趋势</h2>
-     <div class="chart-box"><canvas id="chart"></canvas></div>
-     <!-- 选中某个点的详情。放在图表「外面」，
-          这样手机上手指按在图上时，信息也不会被手指盖住 -->
-     <div class="chart-info" id="chartInfo">点一下图上的曲线，查看该次测量的具体数值</div>
-     <div class="chart-fallback" id="chartFallback">趋势图需要联网加载图表组件。如当前离线，下方历史列表仍可正常使用。</div>
-   </section>
+    <div class="range-tabs">
+      <button class="rtab" id="rtab-30" onclick="switchChartRange('30')">30天</button>
+      <button class="rtab" id="rtab-90" onclick="switchChartRange('90')">90天</button>
+      <button class="rtab active" id="rtab-all" onclick="switchChartRange('all')">全部</button>
+    </div>
+    <div class="chart-meta" id="chartMeta"></div>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+    <!-- 选中某个点的详情。放在图表「外面」，
+         这样手机上手指按在图上时，信息也不会被手指盖住 -->
+    <div class="chart-info" id="chartInfo">点一下图上的曲线，查看该次测量的具体数值</div>
+    <div class="chart-fallback" id="chartFallback">趋势图需要联网加载图表组件。如当前离线，下方历史列表仍可正常使用。</div>
+  </section>
 
   <!-- 历史 -->
   <section class="card">
@@ -1509,9 +1524,9 @@ async function importUniversal(e){
     const r = await api(API + '/api/upload', {method:'POST', body: text});
     const j = await r.json();
     if (!r.ok){ alert('导入失败：' + (j.error || '未知错误')); e.target.value=''; return; }
-    let msg = '导入完成\\n\\n识别到 ' + j.parsed + ' 条\\n新增 ' + j.added + ' 条';
-    if (j.tagged) msg += '\\n已有 ' + j.tagged + ' 条（并入来源，未重复计数）';
-    msg += '\\n\\n当前共 ' + j.total + ' 条。';
+    let msg = '导入完成\n识别到 ' + j.parsed + ' 条，新增 ' + j.added + ' 条';
+    if (j.tagged) msg += '\n已有 ' + j.tagged + ' 条（并入来源，未重复计数）';
+    msg += '\n当前共 ' + j.total + ' 条。';
     alert(msg);
     await reload();
   }catch(err){ alert('导入失败：' + err.message); }
@@ -1615,7 +1630,7 @@ function render(){
     const last = arr[arr.length-1];
     const c = classify(last.sys, last.dia);
     document.getElementById('badgeNum').textContent = last.sys;
-    document.getElementById('badgeLbl').textContent = '/'+last.dia;
+    document.getElementById('badgeDia').textContent = last.dia;
     const badge = document.getElementById('badge');
     badge.style.background = 'rgb('+c.rgb+')';
     document.getElementById('lvName').textContent = c.name;
@@ -1748,16 +1763,50 @@ function showChartPoint(elements, sorted){
 }
 
 
+// 趋势图时间范围：30 天 / 90 天 / 全部。按真实日历天数过滤，
+// 以当前电脑时间为基准（与「近 7 日均值」一致），默认「全部」不截断。
+let CHART_RANGE = 'all';
+function switchChartRange(k){
+  if (!k || k === CHART_RANGE) return;
+  CHART_RANGE = k;
+  ['30','90','all'].forEach(function(x){
+    const b = document.getElementById('rtab-' + x);
+    if (b) b.classList.toggle('active', x === k);
+  });
+  renderChart(visibleRecords());
+}
+function rangedRecords(arr){
+  if (CHART_RANGE === 'all') return arr;
+  const days = CHART_RANGE === '30' ? 30 : 90;
+  const now = Date.now();
+  const cutoff = now - days * 24 * 60 * 60 * 1000;
+  return arr.filter(function(r){
+    const t = new Date(String(r.date || '') + 'T' + String(r.time || '00:00') + ':00').getTime();
+    return !isNaN(t) && t >= cutoff && t <= now;
+  });
+}
+function chartMetaText(sorted){
+  if (!sorted.length) return '所选范围内暂无记录，可切换到「全部」查看。';
+  const sameDay = sorted.length > 1 && sorted[0].date === sorted[sorted.length-1].date;
+  const stamp = r => String(r.date || '') + (sameDay ? ' ' + String(r.time || '') : '');
+  return stamp(sorted[0]) + ' ~ ' + stamp(sorted[sorted.length-1]) + ' · 共 ' + sorted.length + ' 条';
+}
+
 function renderChart(arr){
   const chartCard = document.getElementById('chartCard');
-  if (!window.Chart || arr.length<1){
+  const ranged = rangedRecords(arr);
+  const meta = document.getElementById('chartMeta');
+  if (!window.Chart || ranged.length < 1){
     chartCard.style.display = arr.length ? '' : 'none';
     if (arr.length && !window.Chart) document.getElementById('chartFallback').style.display='block';
+    if (meta) meta.textContent = ranged.length ? '' : chartMetaText(ranged);
+    if (chart){ chart.destroy(); chart = null; }
     return;
   }
   chartCard.style.display='';
   document.getElementById('chartFallback').style.display='none';
-  const sorted = arr.slice().sort((a,b)=> (a.date+a.time)<(b.date+b.time)?-1:1);
+  const sorted = ranged.slice().sort((a,b)=> (a.date+a.time)<(b.date+b.time)?-1:1);
+  if (meta) meta.textContent = chartMetaText(sorted);
   const labels = sorted.map(r=>`${r.date} ${r.time}`);
   const sysData = sorted.map(r=>r.sys);
   const diaData = sorted.map(r=>r.dia);
@@ -1788,16 +1837,13 @@ function renderChart(arr){
         }},
       // 点/触摸图上的某个点，把详情显示在图表下方的固定区域
       onClick:(evt, elements)=> showChartPoint(elements, sorted),
-      // 手指或鼠标在图上来回滑动时也要同步 ——
-      // 否则会出现"浮层已经跳到新点、下面还停在上一条"的错位
+      // 手指或鼠标在图上来回滑动时也要同步
       onHover:(evt, elements)=> showChartPoint(elements, sorted),
       scales:{
         y:{ min:60, max:180,
             ticks:{ stepSize:10, color:'#6b7785', font:{size:11} },
             grid:{ color:'rgba(31,41,51,.09)', drawTicks:false },
             title:{display:true,text:'mmHg'} },
-        // X 轴日期标签太密（斜排后依然拥挤），不再展示；
-        // 具体日期与数值看悬浮/点按弹出的浮层即可。
         x:{ ticks:{ display:false }, grid:{ display:false } }
       } }
   });

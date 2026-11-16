@@ -78,14 +78,9 @@
   a.card:active{transform:translateY(-1px)}
 
   .icon{
-    width:44px;height:44px;border-radius:12px;margin-bottom:14px;
+    width:44px;height:44px;margin-bottom:14px;
     display:flex;align-items:center;justify-content:center;font-size:22px;
-    background:var(--accent-soft);
-    border:1px solid rgba(255,122,24,.22);
-  }
-  .icon.plain{
-    background:rgba(255,255,255,.05);
-    border:1px solid var(--line);
+    background:transparent;border:0;
   }
 
   .card h2{
@@ -94,13 +89,6 @@
   }
   /* 让三张卡片等高：血压卡片是两行说明 */
   .card p{font-size:12.5px;color:var(--sub);margin:0;min-height:3.2em}
-
-  .badge{
-    font-size:10.5px;font-weight:500;padding:2px 7px;border-radius:5px;
-    background:rgba(255,122,24,.16);color:#ffa257;
-    border:1px solid rgba(255,122,24,.28);
-    letter-spacing:.2px;
-  }
 
   .arrow{
     position:absolute;right:18px;top:50%;transform:translateY(-50%);
@@ -129,7 +117,7 @@
     <a class="card" id="bpCard" href="bp/">
       <div class="icon">🩺</div>
       <h2>血压管理</h2>
-      <p>记录、分级预警、趋势分析<br>免登录工具 · 数据只存自己浏览器</p>
+      <p>记录、分级预警、趋势分析</p>
       <span class="arrow">→</span>
     </a>
 
@@ -141,7 +129,7 @@
     </a>
 
     <a class="card" href="https://github.com/KevinXiao24" target="_blank" rel="noopener">
-      <div class="icon plain">💻</div>
+      <div class="icon">💻</div>
       <h2>GitHub</h2>
       <p>@KevinXiao24 · 代码与项目</p>
       <span class="arrow">→</span>
