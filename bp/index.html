@@ -149,6 +149,16 @@
   .bp-dlg-ok:hover{background:var(--brand-d);border-color:var(--brand-d)}
   .bp-dlg-ok:active{transform:translateY(1px)}
   .bp-dlg-ok:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .bp-dlg-input{display:block;width:100%;box-sizing:border-box;margin:0 0 16px;
+    padding:9px 11px;font:inherit;font-size:13.5px;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:9px}
+  .bp-dlg-input:focus{outline:none;border-color:var(--brand)}
+  .bp-dlg-input[hidden]{display:none}
+  .bp-dlg-cancel{min-width:96px;padding:9px 18px;margin-right:10px;font:inherit;
+    font-size:14px;font-weight:600;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:9px;cursor:pointer}
+  .bp-dlg-cancel:hover{background:#f5f7fa}
+  .bp-dlg-cancel[hidden]{display:none}
   /* 图表 */
   .chart-box{position:relative;height:280px}
   .chart-fallback{display:none;padding:20px;text-align:center;color:var(--sub);font-size:13px}
@@ -964,7 +974,7 @@
   }
   function configAlert(title, body) {
     try { if (window.showNotice) window.showNotice(title + '：' + body);
-      else window.alert(title + '\n\n' + body); } catch (e) {}
+      else console.warn('[bp] ' + title + '：' + body); } catch (e) {}
   }
   function providerName() {
     var sel = document.getElementById('aiProvider');
@@ -1326,7 +1336,7 @@ async function addRecord(){
 
 
 async function delRecord(id){
-  if (!confirm('确定删除这条记录？')) return;
+  if (!await showConfirm('确定删除这条记录？')) return;
   try{
     await api(API + '/api/delete', {method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -1337,8 +1347,8 @@ async function delRecord(id){
 
 
 async function clearAll(){
-  if (!confirm('确定清空全部血压记录？此操作不可恢复。')) return;
-  if (!confirm('再确认一次：真的要清空吗？')) return;
+  if (!await showConfirm('确定清空全部血压记录？此操作不可恢复。')) return;
+  if (!await showConfirm('再确认一次：真的要清空吗？')) return;
   try{
     await api(API + '/api/records', {method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -1387,7 +1397,7 @@ async function importJSON(e){
     const j = JSON.parse(text);
     const arr = Array.isArray(j) ? j : (j.records || []);
     if (!arr.length){ showNotice('这个备份里没有记录。'); e.target.value=''; return; }
-    if (!confirm('导入 ' + arr.length + ' 条记录？将**覆盖**现有数据。')){ e.target.value=''; return; }
+    if (!await showConfirm('导入 ' + arr.length + ' 条记录？将**覆盖**现有数据。')){ e.target.value=''; return; }
     await api(API + '/api/records', {method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({replace:true, records: arr})});
@@ -1738,13 +1748,13 @@ function render(){
 // 浮层会正好被手指盖住；放到图表外面就永远不会挡。
 let CHART_SEL_IDX = -1;   // 信息条当前显示的是第几个点
 
-// 以当前电脑时间为基准，统计最近 7 天的平均值（不受标签卡筛选影响）
+// 以今天 00:00 为锚点，按自然日统计（不精确到小时滚动）。
+// 与趋势图 30/90 天同一套 X <= days 判定，这里 days=7；不受标签卡筛选影响。
 function recent7AvgHtml(){
-  const now = Date.now();
-  const from = now - 7*24*60*60*1000;
+  const today = todayStartMs();
   const rows = load().filter(r=>{
-    const t = recordTime(r);
-    return !isNaN(t) && t >= from && t <= now;
+    const X = daysFromToday(r, today);
+    return !isNaN(X) && X >= 0 && X <= 7;
   });
   const mean = k=>{
     const v = rows.map(r=>Number(r[k])).filter(x=>Number.isFinite(x) && x>0);
@@ -2072,8 +2082,8 @@ function saveAiCfg(){
     '设置已保存。' + (c.key ? '（密钥已存本机浏览器）' : '（未填写密钥，发送前请先填）'));
   aiStatus('已保存。建议点「获取模型列表」核对模型名是否仍有效。', true);
 }
-function clearAiKey(){
-  if (!confirm('将从本机清除 API Key？')) return;
+async function clearAiKey(){
+  if (!await showConfirm('将从本机清除 API Key？')) return;
   localStorage.removeItem(AI_KEY_KEY);
   document.getElementById('aiKey').value='';
   appendMsg(document.getElementById('chatBox'),'sys','密钥已清除。');
@@ -2211,36 +2221,73 @@ async function sendAi(){
 })();
 </script>
 
-  <!-- 站内提示弹窗（网页专属，风格与页面一致） -->
+  <!-- 站内弹窗（网页专属）：告知 / 确认 / 输入 三种形态 -->
   <div class="bp-mask" id="bpMask" hidden>
     <div class="bp-dialog" role="dialog" aria-modal="true" aria-labelledby="bpDlgTitle">
       <div class="bp-dlg-icon" id="bpDlgIcon">✓</div>
       <h3 class="bp-dlg-title" id="bpDlgTitle">提示</h3>
       <p class="bp-dlg-body" id="bpDlgBody"></p>
-      <div class="bp-dlg-acts"><button class="bp-dlg-ok" id="bpDlgOk" type="button">确定</button></div>
+      <input class="bp-dlg-input" id="bpDlgInput" type="text" hidden>
+      <div class="bp-dlg-acts">
+        <button class="bp-dlg-cancel" id="bpDlgCancel" type="button" hidden>取消</button>
+        <button class="bp-dlg-ok" id="bpDlgOk" type="button">确定</button>
+      </div>
     </div>
   </div>
   <script>
   (function(){
-    function closeNotice(){ var m=document.getElementById('bpMask'); if(m) m.hidden=true; }
+    var mask = document.getElementById('bpMask');
+    var resolveFn = null, mode = 'notice';
+    function finish(result){
+      if (mask) mask.hidden = true;
+      var fn = resolveFn; resolveFn = null;
+      if (fn) fn(result);
+    }
+    function open(opt){
+      opt = opt || {};
+      if (!mask){ console.warn('[bp] ' + opt.msg); return Promise.resolve(false); }
+      document.getElementById('bpDlgTitle').textContent =
+        opt.title || (opt.kind === 'confirm' ? '请确认' : '提示');
+      document.getElementById('bpDlgBody').textContent = opt.msg || '';
+      var icon = document.getElementById('bpDlgIcon');
+      icon.textContent = opt.kind === 'notice' ? '✓' : '?';
+      icon.className = 'bp-dlg-icon' + (opt.error ? ' err' : '');
+      var input = document.getElementById('bpDlgInput');
+      input.hidden = opt.kind !== 'prompt';
+      input.value = opt.value || '';
+      document.getElementById('bpDlgCancel').hidden = opt.kind === 'notice';
+      document.getElementById('bpDlgOk').textContent =
+        opt.okText || (opt.kind === 'prompt' ? '保存' : '确定');
+      mask.hidden = false;
+      mode = opt.kind;
+      if (opt.kind === 'prompt'){ try{ input.focus(); input.select(); }catch(e){} }
+      return new Promise(function(resolve){ resolveFn = resolve; });
+    }
+    function ok(){
+      finish(mode === 'prompt' ? document.getElementById('bpDlgInput').value : true);
+    }
+    function cancel(){ finish(mode === 'prompt' ? null : false); }
     window.showNotice = function(msg, opt){
       opt = opt || {};
-      var mask = document.getElementById('bpMask');
-      if (!mask){ try { window['ale'+'rt'](msg); } catch(e){} return; }
-      document.getElementById('bpDlgTitle').textContent = opt.title || '提示';
-      document.getElementById('bpDlgBody').textContent = msg;
-      var icon = document.getElementById('bpDlgIcon');
-      icon.textContent = opt.error ? '!' : '✓';
-      icon.className = 'bp-dlg-icon' + (opt.error ? ' err' : '');
-      mask.hidden = false;
-      try { document.getElementById('bpDlgOk').focus(); } catch(e){}
+      return open({msg: msg, title: opt.title || '提示', error: !!opt.error, kind: 'notice'});
     };
-    var m = document.getElementById('bpMask');
-    if (m){
-      document.getElementById('bpDlgOk').addEventListener('click', closeNotice);
-      m.addEventListener('click', function(e){ if (e.target === m) closeNotice(); });
+    window.showConfirm = function(msg, opt){
+      opt = opt || {};
+      return open({msg: msg, title: opt.title || '请确认', okText: opt.okText, kind: 'confirm'});
+    };
+    window.showPrompt = function(msg, defVal, opt){
+      opt = opt || {};
+      return open({msg: msg, value: defVal || '', title: opt.title || '请输入',
+                   okText: opt.okText || '保存', kind: 'prompt'});
+    };
+    if (mask){
+      document.getElementById('bpDlgOk').addEventListener('click', ok);
+      document.getElementById('bpDlgCancel').addEventListener('click', cancel);
+      mask.addEventListener('click', function(e){ if (e.target === mask) cancel(); });
       document.addEventListener('keydown', function(e){
-        if (e.key === 'Escape' && !m.hidden) closeNotice();
+        if (mask.hidden) return;
+        if (e.key === 'Escape'){ e.preventDefault(); cancel(); }
+        else if (e.key === 'Enter'){ e.preventDefault(); ok(); }
       });
     }
   })();
