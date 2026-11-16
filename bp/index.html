@@ -129,6 +129,7 @@
   .rtab.active{background:var(--brand);border-color:var(--brand);color:#fff}
   .rtab:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   .chart-meta{font-size:11.5px;color:var(--sub);margin:0 0 8px;min-height:18px}
+  .chart-axis{display:flex;justify-content:space-between;font-size:11.5px;color:var(--sub);margin:4px 2px 0}
   /* 站内提示弹窗：替代浏览器原生 alert（原生弹窗带域名标题、样式不可控） */
   .bp-mask{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
     padding:20px;background:rgba(17,24,39,.45)}
@@ -434,6 +435,7 @@
     </div>
     <div class="chart-meta" id="chartMeta"></div>
     <div class="chart-box"><canvas id="chart"></canvas></div>
+    <div class="chart-axis" id="chartAxis"><span id="chartFrom"></span><span id="chartTo"></span></div>
     <!-- 选中某个点的详情。放在图表「外面」，
          这样手机上手指按在图上时，信息也不会被手指盖住 -->
     <div class="chart-info" id="chartInfo">点一下图上的曲线，查看该次测量的具体数值</div>
@@ -1709,9 +1711,8 @@ function render(){
         + (hasNote ? '' : ' style="color:var(--sub)"') + `>${hasNote ? esc(r.note) : '—'}</span>`
         + `<button class="note-btn mob-only${hasNote ? ' has' : ''}"`
         + ` title="${hasNote ? '查看或编辑备注' : '添加备注'}">${hasNote ? '✎' : '＋'}</button>`;
-      // 本地版：允许整条修改和删除
-      const actCell =
-        `<button class="act-btn del" onclick="delRecord(${r.id})" title="删除这条记录">🗑</button>`;
+      // 删除按钮继续隐藏（防误操作）。要恢复：把 delRecord 那一格加回行模板，
+      // 并在表头末尾补「操作」th；delRecord() 函数保留。
       return `<tr class="data-row">
         <td class="cell-edit" onclick="editCell(${r.id},'when',this)" title="点击改日期时间">${r.date}<span class="tm">${r.time}</span></td>
         <td class="cell-edit" onclick="editCell(${r.id},'bp',this)" title="点击改血压"><b>${r.sys}</b>/${r.dia}</td>
@@ -1719,10 +1720,9 @@ function render(){
         <td><span class="tag" style="background:rgb(${c.rgb})">${c.name.split('（')[0]}</span></td>
         <td>${srcTags}</td>
         <td class="note-cell cell-edit" onclick="editCell(${r.id},'note',this)" title="点击改备注">${noteCell}</td>
-        <td class="act-cell">${actCell}</td>
       </tr>`
       // 备注行：有内容就默认展开「展示」，点铅笔才进入编辑
-      + `<tr class="note-row${hasNote ? ' open' : ''}" id="nrow-${r.id}" data-has="${hasNote ? 1 : 0}"><td colspan="7">`
+      + `<tr class="note-row${hasNote ? ' open' : ''}" id="nrow-${r.id}" data-has="${hasNote ? 1 : 0}"><td colspan="6">`
         + `<div class="note-editor">`
           + (hasNote ? `<div class="note-view"><span class="note-k">备注：</span>${esc(r.note)}</div>` : '')
           + `</div>`
@@ -1731,7 +1731,7 @@ function render(){
     }).join('');
     // 每行的「删除」按钮暂时去掉，防误操作。
     // 要恢复：把 delRecord 那一格加回上面的行模板，并在表头末尾补一个空 th。
-    wrap.innerHTML = `<table class="hist-table"><thead><tr><th>日期</th><th>高压/低压</th><th>心率</th><th>分级</th><th>来源</th><th>备注</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`;
+    wrap.innerHTML = `<table class="hist-table"><thead><tr><th>日期</th><th>高压/低压</th><th>心率</th><th>分级</th><th>来源</th><th>备注</th></tr></thead><tbody>${rows}</tbody></table>`;
   } else {
     let hint = '还没有记录，先在上方添加一条吧。';
     if (CURRENT_TAB === 'omron') hint = '「OMRON Plus」下还没有数据。把 OMRON Plus 导出的 CSV 放进 iCloud 的「血压同步」文件夹，服务会自动导入。';
@@ -1868,11 +1868,13 @@ function renderChart(arr){
   const meta = document.getElementById('chartMeta');
   const chartBox = document.querySelector('#chartCard .chart-box');
   const infoEl = document.getElementById('chartInfo');
+  const axisEl = document.getElementById('chartAxis');
   if (!window.Chart || ranged.length < 1){
     chartCard.style.display = arr.length ? '' : 'none';
     // 空范围时连画布容器一起收起，否则会留下 280px 空白，看起来像图表坏了
     if (chartBox) chartBox.style.display = 'none';
     if (infoEl) infoEl.style.display = 'none';
+    if (axisEl) axisEl.style.display = 'none';
     if (arr.length && !window.Chart) document.getElementById('chartFallback').style.display='block';
     if (meta) meta.textContent = ranged.length ? '' : chartMetaText(ranged, arr);
     if (chart){ chart.destroy(); chart = null; }
@@ -1884,6 +1886,14 @@ function renderChart(arr){
   document.getElementById('chartFallback').style.display='none';
   const sorted = ranged.slice().sort((a,b)=> (a.date+a.time)<(b.date+b.time)?-1:1);
   if (meta) meta.textContent = chartMetaText(sorted, arr);
+  // 横轴起止日期：参考小程序 .chart-axis，左右两端展示选中数据的首末日期
+  if (axisEl){
+    const sameDay = sorted.length > 1 && sorted[0].date === sorted[sorted.length-1].date;
+    const short = r => String(r.date || '').slice(5) + (sameDay ? ' ' + String(r.time || '') : '');
+    document.getElementById('chartFrom').textContent = short(sorted[0]);
+    document.getElementById('chartTo').textContent = short(sorted[sorted.length-1]);
+    axisEl.style.display = '';
+  }
   const labels = sorted.map(r=>`${r.date} ${r.time}`);
   const sysData = sorted.map(r=>r.sys);
   const diaData = sorted.map(r=>r.dia);
