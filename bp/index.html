@@ -209,14 +209,13 @@
     .hist-table{font-size:11px;table-layout:fixed}
     .hist-table th,.hist-table td{padding:6px 4px;vertical-align:top}
     .hist-table th{font-size:10.5px}
-    .hist-table th:nth-child(1){width:22%}   /* 日期 */
-    .hist-table th:nth-child(2){width:19%}   /* 血压 */
-    .hist-table th:nth-child(3){width:8%}   /* 心率 */
-    .hist-table th:nth-child(4){width:19%}   /* 分级 */
+    .hist-table th:nth-child(1){width:28%}   /* 日期 */
+    .hist-table th:nth-child(2){width:24%}   /* 血压 */
+    .hist-table th:nth-child(3){width:11%}   /* 心率 */
+    .hist-table th:nth-child(4){width:25%}   /* 分级 */
     .hist-table th:nth-child(5){display:none}/* 来源：窄屏省略 */
     .hist-table td:nth-child(5){display:none}
-    .hist-table th:nth-child(6){width:11%}   /* 备注 */
-    .hist-table th:nth-child(7){width:21%}   /* 操作 */
+    .hist-table th:nth-child(6){width:12%}   /* 备注 */
     .hist-table .tm{display:block;font-size:10px;color:var(--sub)}
     .hist-table .tag{font-size:9.5px;padding:2px 5px;white-space:normal}
 
@@ -254,18 +253,9 @@
     .note-acts{display:flex;gap:8px;margin-top:8px}
     .note-acts .btn{flex:1;padding:8px;font-size:13px}
 
-    /* 移动端备注：行下展开的一行输入（非弹窗） */
-    .note-row td{background:#f7f9fd;padding:8px 10px}
-    .mnote-input{width:100%;box-sizing:border-box;font-size:16px;
-      padding:9px 11px;border:1px solid var(--line);border-radius:9px;
-      font-family:inherit;color:var(--ink);background:#fff;outline:none}
-    .mnote-input:focus{border-color:var(--line)}
-    .mnote-acts{display:flex;gap:8px;margin-top:8px}
-    .mnote-acts .btn{flex:1;padding:8px;font-size:13px}
-    .mnote-edit-box{display:none}
+    .note-edit-box{display:none}
     .note-row.editing .note-view{display:none}
-    .note-row.editing .mnote-edit-box{display:block}
-
+    .note-row.editing .note-edit-box{display:block}
     /* ② 分级标准表：保持表格形式，一行一条显示完，不堆叠成卡片
        （内容都很短，三列在窄屏也放得下，所以只缩字号，不改布局） */
     .lv-table{font-size:11.5px}
@@ -348,7 +338,7 @@
      所有输入控件统一 >=16px；不设置 maximum-scale / user-scalable=no，
      缩放仍只能由用户主动双指手势触发。 */
   html{-webkit-text-size-adjust:100%}
-  input,textarea,select,.ci,.mnote-input,.bp-dlg-input,.note-editor textarea{font-size:16px !important}
+  input,textarea,select,.bp-dlg-input,.ci,.note-editor textarea{font-size:16px !important}
   a,button,input,textarea,select,.btn,.tab,.rtab,.note-btn,.act-btn,
   .bp-dlg-ok,.bp-dlg-cancel,.nav-link,.cell-edit{touch-action:manipulation}
   input,textarea,select{max-width:100%}
@@ -1595,38 +1585,81 @@ function esc(s){
   });
 }
 
-// 移动端备注：点 ＋/✎ 在记录行下方展开一行输入。
-// 输入框在页面流内（非 fixed 弹窗），字号 >=16px 避免 iOS focus 自动缩放，
-// 浏览器会把焦点元素滚进可视区，键盘不会遮住输入行。
-// 移动端备注两态：有内容默认展开「展示」，点 ＋/✎ 切到「编辑」；
-// 编辑中再点取消 → 有内容退回展示态，没内容整行收起。与 icu 一致。
-function toggleMobileNote(id){
+let NOTE_CELL = null;
+function editNoteInline(id, td){
+  if (NOTE_CELL) return;
+  const rec = SERVER_CACHE.filter(function(r){ return String(r.id) === String(id); })[0];
+  if (!rec) return;
+  NOTE_CELL = { id: id, td: td, old: td.innerHTML };
+  td.classList.add('editing');
+  td.innerHTML = '<input autocomplete="off" type="text" class="ci" id="ci-note" name="bpnote' + Date.now() + '" value="' + esc(rec.note || '') + '" placeholder="写点备注" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">';
+  const inp = document.getElementById('ci-note');
+  inp.addEventListener('keydown', function(e){
+    if (e.key === 'Enter'){ e.preventDefault(); commitNoteInline(); }
+    else if (e.key === 'Escape'){ e.preventDefault(); cancelNoteInline(); }
+  });
+  inp.addEventListener('blur', function(){
+    setTimeout(function(){
+      if (NOTE_CELL && NOTE_CELL.td === td && !td.contains(document.activeElement)) commitNoteInline();
+    }, 150);
+  });
+  inp.focus(); inp.select();
+}
+function cancelNoteInline(){
+  const c = NOTE_CELL; if (!c) return;
+  NOTE_CELL = null;
+  c.td.innerHTML = c.old;
+  c.td.classList.remove('editing');
+}
+async function commitNoteInline(){
+  const c = NOTE_CELL; if (!c) return;
+  const inp = document.getElementById('ci-note');
+  const next = inp ? inp.value.trim() : '';
+  NOTE_CELL = null;
+  try{
+    const r = await api(API + '/api/note', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id: c.id, note: next})});
+    const j = await r.json();
+    if (!r.ok){ showNotice('保存失败：' + (j.error || '未知错误')); }
+  }catch(e){ showNotice('保存失败：' + e.message); }
+  await reload();
+}
+
+// 移动端备注行的两种形态：
+//   有备注 → 默认展开并「展示」内容，点铅笔切到「编辑」
+//   无备注 → 默认收起，点加号直接展开到「编辑」
+//   编辑中再点取消 → 有内容的退回展示态，没内容的整行收起
+function toggleNoteRow(id){
   const row = document.getElementById('nrow-' + id);
   if (!row) return;
   const has = row.getAttribute('data-has') === '1';
+
   if (row.classList.contains('editing')){
     row.classList.remove('editing');
-    if (!has) row.classList.remove('open');
+    if (!has) row.classList.remove('open');   // 原本没内容的，取消就收起
     return;
   }
   row.classList.add('open');
   row.classList.add('editing');
-  const inp = document.getElementById('mnote-' + id);
-  if (inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  const ta = document.getElementById('nte-' + id);
+  if (ta){ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
 }
-async function saveMobileNote(id){
-  const inp = document.getElementById('mnote-' + id);
-  if (!inp) return;
-  const next = inp.value.trim();
+// 移动端：保存备注
+async function saveNoteInline(id){
+  const ta = document.getElementById('nte-' + id);
+  if (!ta) return;
+  const val = ta.value.trim();
   try{
     const r = await api(API + '/api/note', {method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({id: id, note: next})});
+      body: JSON.stringify({id: id, note: val})});
     const j = await r.json();
     if (!r.ok){ showNotice('保存失败：' + (j.error || '未知错误')); return; }
   }catch(e){ showNotice('保存失败：' + e.message); return; }
   await reload();
 }
+
 
 // ===== 本地版：点哪个格子就改哪个（就地编辑）=====
 let CELL = null;
@@ -1761,9 +1794,9 @@ function render(){
       const hasNote = !!(r.note && r.note.trim());
       // 备注分双端：PC 点文字行内输入，移动端展开一行输入（不用弹窗）
       const noteCell =
-        `<span class="note-text pc-only cell-edit" onclick="editCell(${r.id},'note',this.parentNode)" title="点击改备注"`
+        `<span class="note-text pc-only cell-edit" onclick="editNoteInline(${r.id},this.parentNode)" title="点击改备注"`
         + (hasNote ? '' : ' style="color:var(--sub)"') + `>${hasNote ? esc(r.note) : '—'}</span>`
-        + `<button class="note-btn mob-only${hasNote ? ' has' : ''}" onclick="toggleMobileNote(${r.id})"`
+        + `<button class="note-btn mob-only${hasNote ? ' has' : ''}" onclick="toggleNoteRow(${r.id})"`
         + ` title="${hasNote ? '查看或编辑备注' : '添加备注'}">${hasNote ? '✎' : '＋'}</button>`;
       // 删除按钮继续隐藏（防误操作）。要恢复：把 delRecord 那一格加回行模板，
       // 并在表头末尾补「操作」th；delRecord() 函数保留。
@@ -1776,14 +1809,15 @@ function render(){
         <td class="note-cell">${noteCell}</td>
       </tr>`
       // 移动端备注：点 ＋/✎ 在本行下方展开一行输入（页面流内，不是 fixed 弹窗）
+      // 备注行：有内容就默认展开「展示」，点铅笔才进入编辑
       + `<tr class="note-row${hasNote ? ' open' : ''}" id="nrow-${r.id}" data-has="${hasNote ? 1 : 0}"><td colspan="6">`
         + `<div class="note-editor">`
           + (hasNote ? `<div class="note-view"><span class="note-k">备注：</span>${esc(r.note)}</div>` : '')
-          + `<div class="mnote-edit-box">`
-            + `<input autocomplete="off" type="text" class="mnote-input" id="mnote-${r.id}" name="bpmnote${r.id}" value="${esc(r.note || '')}" placeholder="写点备注" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">`
-            + `<div class="mnote-acts">`
-              + `<button class="btn" onclick="saveMobileNote(${r.id})">保存</button>`
-              + `<button class="btn ghost" onclick="toggleMobileNote(${r.id})">取消</button>`
+          + `<div class="note-edit-box">`
+            + `<textarea autocomplete="off" id="nte-${r.id}" name="bpmnote${r.id}" placeholder="写下这次测量的备注…" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">${esc(r.note || '')}</textarea>`
+            + `<div class="note-acts">`
+              + `<button class="btn" onclick="saveNoteInline(${r.id})">保存</button>`
+              + `<button class="btn ghost" onclick="toggleNoteRow(${r.id})">取消</button>`
             + `</div>`
           + `</div>`
         + `</div>`
