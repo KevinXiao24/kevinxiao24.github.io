@@ -340,7 +340,8 @@
   .ci:focus{border-color:var(--line)}
 
   /* 移动端专用节点：PC 默认隐藏 */
-  .ch-extra,.chart-legend-m,.chart-axis-m{display:none}
+  .ch-extra,.chart-legend-m,.chart-axis-m,.chart-week-m{display:none}
+  .ci-d-m,.ci-r-m{display:none}
 
   /* ===== 移动端深色主题：色值逐项取自小程序 main.wxss =====
      .page #131619→#0d0f12 / .card #1a1e25 #2b313b / 主字 #f2f4f7
@@ -426,6 +427,11 @@
     .chart-info .ci-avg{border-left:none;border-top:1px solid #2b313b;
       padding:6px 0 0;margin-top:6px;color:#8d97a5;font-size:11px}
     .chart-info .ci-avg-title{color:#8d97a5;font-size:11px}
+    /* 小程序 chart-info 两行 + 卡片外独立 .week */
+    .chart-info .ci-d-m{display:block;font-size:12px;color:#f2f4f7;line-height:1.6}
+    .chart-info .ci-r-m{display:block;font-size:11px;color:#8d97a5;margin-top:3px;line-height:1.6}
+    .chart-info .ci-avg{display:none}
+    .chart-week-m{display:block;font-size:11px;color:#8d97a5;margin-top:7px;line-height:1.6}
 
     /* 顶部/底部留白：Safari 用 html 背景色渲染状态栏与 overscroll 区域，
        只给 body 设渐变不够，必须 html + body 都有实色兜底。 */
@@ -566,6 +572,8 @@
     <!-- 选中某个点的详情。放在图表「外面」，
          这样手机上手指按在图上时，信息也不会被手指盖住 -->
     <div class="chart-info" id="chartInfo">点一下图上的曲线，查看该次测量的具体数值</div>
+    <!-- 小程序 .week：近 7 日均值独立一行，放在信息条外面 -->
+    <div class="chart-week-m" id="chartWeekM"></div>
     <div class="chart-fallback" id="chartFallback">趋势图需要联网加载图表组件。如当前离线，下方历史列表仍可正常使用。</div>
   </section>
 
@@ -1916,6 +1924,11 @@ function recent7AvgHtml(){
       '<span class="ci-item"><b style="color:#2f6df0">舒张压</b> ' + (d??'—') + ' mmHg</span>' +
       '<span class="ci-item"><b style="color:#7a8699">心率</b> ' + (p??'—') + ' 次/分</span>' +
       '</div>';
+  if (window.innerWidth <= 700){
+    // 小程序 .week：一行紧凑小字，放在信息条外面
+    return '<span class="week-m">近 7 日均值（' + rows.length + ' 次）· 高压 ' + (s??'—') +
+           ' / 低压 ' + (d??'—') + ' / 心率 ' + (p??'—') + '</span>';
+  }
   return '<div class="ci-avg"><span class="ci-avg-title">近 7 日均值（' + rows.length + ' 次）</span>' + body + '</div>';
 }
 
@@ -1930,6 +1943,15 @@ function showChartPoint(elements, sorted){
   if (!r) return;
   CHART_SEL_IDX = idx;
   box.classList.remove('idle');
+  if (window.innerWidth <= 700){
+    // 小程序 chart-info：日期+分级名 / 数值一行；近 7 日均值在卡片外
+    box.innerHTML =
+      '<div class="ci-d-m">' + r.date + ' ' + r.time + ' · ' + classify(r.sys, r.dia).name + '</div>' +
+      '<div class="ci-r-m">收缩压 ' + r.sys + ' / 舒张压 ' + r.dia + ' mmHg · 心率 ' + (r.pulse ?? '—') + '</div>';
+    // 触发自定义 plugin 重绘选中竖线 / 白点 / sys-dia 浮窗
+    if (typeof chart !== 'undefined' && chart) chart.update('none');
+    return;
+  }
   box.innerHTML =
     '<div class="ci-main">' +
       '<div class="ci-date">' + r.date + ' ' + r.time + '</div>' +
@@ -2045,9 +2067,15 @@ function renderChart(arr){
   // 每次重画都把信息条复位（换筛选卡、数据刷新后不该残留上一条）
   CHART_SEL_IDX = -1;
   const infoBox = document.getElementById('chartInfo');
+  const weekM = document.getElementById('chartWeekM');
   if (infoBox){
     infoBox.classList.add('idle');
-    infoBox.innerHTML = '<div class="ci-main">点一下图上的曲线，查看该次测量的具体数值</div>' + recent7AvgHtml();
+    if (window.innerWidth <= 700){
+      infoBox.innerHTML = '<div class="ci-main">在图上左右滑动，查看每次测量的具体数值</div>';
+      if (weekM) weekM.innerHTML = recent7AvgHtml();
+    } else {
+      infoBox.innerHTML = '<div class="ci-main">点一下图上的曲线，查看该次测量的具体数值</div>' + recent7AvgHtml();
+    }
   }
 
   const ctx = document.getElementById('chart').getContext('2d');
@@ -2069,13 +2097,23 @@ function renderChart(arr){
         {label:'收缩压', data:sysData, borderColor:'#d83434', backgroundColor:'rgba(216,52,52,.08)', tension:.3, fill:true, pointRadius:3},
         {label:'舒张压', data:diaData, borderColor:'#2f6df0', backgroundColor:'rgba(47,109,240,.08)', tension:.3, fill:true, pointRadius:3}
       ];
+  // 小程序 _buildChart：横轴按真实时间戳定位；解析失败沿用前一个有效时间戳
+  let lastTs = null;
+  const mobileTs = sorted.map(function(r){
+    const t = recordTime(r);
+    if (!isNaN(t)) lastTs = t;
+    return isNaN(t) ? (lastTs === null ? todayStartMs() : lastTs) : t;
+  });
+  const pointRadiusM = sorted.length <= 40 ? 2 : 0;
   const mobileDatasets = [
-        {label:'收缩压', data:sysData, borderColor:'#ff5a4e', backgroundColor:'#ff5a4e',
+        {label:'收缩压', data:sorted.map((r,i)=>({x:mobileTs[i], y:Number(r.sys)||0})),
+         parsing:false, borderColor:'#ff5a4e', backgroundColor:'#ff5a4e',
          borderWidth:2, borderJoinStyle:'round', borderCapStyle:'round', tension:0, fill:false,
-         pointRadius: sorted.length <= 40 ? 2 : 0, pointHoverRadius:4, pointHoverBackgroundColor:'#ffffff'},
-        {label:'舒张压', data:diaData, borderColor:'#4a9eff', backgroundColor:'#4a9eff',
+         pointRadius:pointRadiusM, pointHoverRadius:4, pointHoverBackgroundColor:'#ffffff'},
+        {label:'舒张压', data:sorted.map((r,i)=>({x:mobileTs[i], y:Number(r.dia)||0})),
+         parsing:false, borderColor:'#4a9eff', backgroundColor:'#4a9eff',
          borderWidth:2, borderJoinStyle:'round', borderCapStyle:'round', tension:0, fill:false,
-         pointRadius: sorted.length <= 40 ? 2 : 0, pointHoverRadius:4, pointHoverBackgroundColor:'#ffffff'}
+         pointRadius:pointRadiusM, pointHoverRadius:4, pointHoverBackgroundColor:'#ffffff'}
       ];
   const pcOptions = { responsive:true, maintainAspectRatio:false,
       // 触摸设备上点按要更准一些
@@ -2097,24 +2135,71 @@ function renderChart(arr){
       } };
   // 小程序：线宽 2、无填充、>40 条不画点、纵轴 60–180 五等分、网格 #2b313b、
   // tooltip 关掉（详情走图表下方信息条，避免黑色浮层挡住折线）
+  // 小程序 _paint 选中反馈：竖线 + 两个白点 + sys/dia 实色小浮窗（2D，不用半透明）
+  const bpSelPlugin = {
+    id:'bpSel',
+    afterDatasetsDraw(c){
+      const idx = CHART_SEL_IDX, pts = c.$bpPoints, ts = c.$bpTs;
+      if (window.innerWidth > 700 || idx < 0 || !pts || !ts || !pts[idx]) return;
+      const ctx = c.ctx, ca = c.chartArea, p = pts[idx];
+      const x = c.scales.x.getPixelForValue(ts[idx]);
+      const ys = c.scales.y.getPixelForValue(Number(p.sys)||0);
+      const yd = c.scales.y.getPixelForValue(Number(p.dia)||0);
+      ctx.save();
+      ctx.strokeStyle='#6b7482'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x, ca.top); ctx.lineTo(x, ca.bottom); ctx.stroke();
+      ctx.fillStyle='#ffffff';
+      [ys, yd].forEach(function(y){ ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill(); });
+      const label = (Number(p.sys)||0) + '/' + (Number(p.dia)||0);
+      const tw = String(label).length*7 + 16;
+      const bx = Math.min(c.width-tw-2, Math.max(2, x-tw/2));
+      const by = Math.max(2, Math.min(ys-30, c.height-14-22));
+      ctx.fillStyle='#2a303b'; ctx.fillRect(bx, by, tw, 20);
+      ctx.fillStyle='#f2f4f7'; ctx.font='11px sans-serif';
+      ctx.fillText(label, bx+8, by+14);
+      ctx.restore();
+    },
+    beforeDraw(c){
+      if (window.innerWidth > 700) return;
+      // 小程序在 canvas 左上角标 mmHg 单位
+      const ctx = c.ctx;
+      ctx.save();
+      ctx.fillStyle='#6b7482'; ctx.font='10px sans-serif';
+      ctx.fillText('mmHg', 2, 12);
+      ctx.restore();
+    }
+  };
   const mobileOptions = { responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:12 } },
       interaction:{ mode:'index', intersect:false },
       plugins:{ legend:{display:false}, tooltip:{enabled:false} },
       onClick:(evt, elements)=> showChartPoint(elements, sorted),
       onHover:(evt, elements)=> showChartPoint(elements, sorted),
       scales:{
+        // 小程序：固定 60–180，网格 10 mmHg 一档（13 条），只每 30 标一次数字（5 个）。
+        // 用 afterBuildTicks 强制刻度，避免 Chart.js 按画布高度自动抽稀。
         y:{ min:60, max:180,
-            ticks:{ stepSize:30, color:'#6b7482', font:{size:10} },
+            afterBuildTicks: axis => {
+              const list = [];
+              for (let v=60; v<=180; v+=10) list.push({value:v});
+              axis.ticks = list;
+            },
+            ticks:{ autoSkip:false, maxTicksLimit:13, color:'#6b7482', font:{size:10},
+                    callback:v => ((v-60)%30===0 ? v : '') },
             grid:{ color:'#2b313b', drawTicks:false },
             title:{display:false} },
-        x:{ ticks:{ display:false }, grid:{ display:false } }
+        // 小程序：横轴按真实时间戳比例（不再是等距分类轴）
+        x:{ type:'linear', ticks:{ display:false }, grid:{ display:false } }
       } };
 
   chart = new Chart(ctx, {
     type:'line',
     data:{ labels, datasets: isMobileChart ? mobileDatasets : pcDatasets },
-    options: isMobileChart ? mobileOptions : pcOptions
+    options: isMobileChart ? mobileOptions : pcOptions,
+    plugins: isMobileChart ? [bpSelPlugin] : []
   });
+  chart.$bpPoints = sorted;
+  chart.$bpTs = mobileTs;
 
   // 视口跨越 700px 时重绘一次，保证 PC 白色 / 移动深色两套配置切换正确
   if (!window.__bpChartResizeBound){
