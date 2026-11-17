@@ -259,9 +259,12 @@
     .mnote-input{width:100%;box-sizing:border-box;font-size:16px;
       padding:9px 11px;border:1px solid var(--line);border-radius:9px;
       font-family:inherit;color:var(--ink);background:#fff;outline:none}
-    .mnote-input:focus{border-color:var(--brand)}
+    .mnote-input:focus{border-color:var(--line)}
     .mnote-acts{display:flex;gap:8px;margin-top:8px}
     .mnote-acts .btn{flex:1;padding:8px;font-size:13px}
+    .mnote-edit-box{display:none}
+    .note-row.editing .note-view{display:none}
+    .note-row.editing .mnote-edit-box{display:block}
 
     /* ② 分级标准表：保持表格形式，一行一条显示完，不堆叠成卡片
        （内容都很短，三列在窄屏也放得下，所以只缩字号，不改布局） */
@@ -1595,18 +1598,21 @@ function esc(s){
 // 移动端备注：点 ＋/✎ 在记录行下方展开一行输入。
 // 输入框在页面流内（非 fixed 弹窗），字号 >=16px 避免 iOS focus 自动缩放，
 // 浏览器会把焦点元素滚进可视区，键盘不会遮住输入行。
+// 移动端备注两态：有内容默认展开「展示」，点 ＋/✎ 切到「编辑」；
+// 编辑中再点取消 → 有内容退回展示态，没内容整行收起。与 icu 一致。
 function toggleMobileNote(id){
   const row = document.getElementById('nrow-' + id);
   if (!row) return;
-  const opening = !row.classList.contains('open');
-  document.querySelectorAll('.note-row.open').forEach(function(x){
-    if (x !== row) x.classList.remove('open');
-  });
-  row.classList.toggle('open', opening);
-  if (opening){
-    const inp = document.getElementById('mnote-' + id);
-    if (inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  const has = row.getAttribute('data-has') === '1';
+  if (row.classList.contains('editing')){
+    row.classList.remove('editing');
+    if (!has) row.classList.remove('open');
+    return;
   }
+  row.classList.add('open');
+  row.classList.add('editing');
+  const inp = document.getElementById('mnote-' + id);
+  if (inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
 }
 async function saveMobileNote(id){
   const inp = document.getElementById('mnote-' + id);
@@ -1770,11 +1776,16 @@ function render(){
         <td class="note-cell">${noteCell}</td>
       </tr>`
       // 移动端备注：点 ＋/✎ 在本行下方展开一行输入（页面流内，不是 fixed 弹窗）
-      + `<tr class="note-row" id="nrow-${r.id}"><td colspan="6">`
-        + `<input autocomplete="off" type="text" class="mnote-input" id="mnote-${r.id}" name="bpmnote${r.id}" value="${esc(r.note || '')}" placeholder="写点备注" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">`
-        + `<div class="mnote-acts">`
-          + `<button class="btn" onclick="saveMobileNote(${r.id})">保存</button>`
-          + `<button class="btn ghost" onclick="toggleMobileNote(${r.id})">取消</button>`
+      + `<tr class="note-row${hasNote ? ' open' : ''}" id="nrow-${r.id}" data-has="${hasNote ? 1 : 0}"><td colspan="6">`
+        + `<div class="note-editor">`
+          + (hasNote ? `<div class="note-view"><span class="note-k">备注：</span>${esc(r.note)}</div>` : '')
+          + `<div class="mnote-edit-box">`
+            + `<input autocomplete="off" type="text" class="mnote-input" id="mnote-${r.id}" name="bpmnote${r.id}" value="${esc(r.note || '')}" placeholder="写点备注" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">`
+            + `<div class="mnote-acts">`
+              + `<button class="btn" onclick="saveMobileNote(${r.id})">保存</button>`
+              + `<button class="btn ghost" onclick="toggleMobileNote(${r.id})">取消</button>`
+            + `</div>`
+          + `</div>`
         + `</div>`
       + `</td></tr>`;
     }).join('');
