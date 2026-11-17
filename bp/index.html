@@ -254,6 +254,15 @@
     .note-acts{display:flex;gap:8px;margin-top:8px}
     .note-acts .btn{flex:1;padding:8px;font-size:13px}
 
+    /* 移动端备注：行下展开的一行输入（非弹窗） */
+    .note-row td{background:#f7f9fd;padding:8px 10px}
+    .mnote-input{width:100%;box-sizing:border-box;font-size:16px;
+      padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+      font-family:inherit;color:var(--ink);background:#fff;outline:none}
+    .mnote-input:focus{border-color:var(--brand)}
+    .mnote-acts{display:flex;gap:8px;margin-top:8px}
+    .mnote-acts .btn{flex:1;padding:8px;font-size:13px}
+
     /* ② 分级标准表：保持表格形式，一行一条显示完，不堆叠成卡片
        （内容都很短，三列在窄屏也放得下，所以只缩字号，不改布局） */
     .lv-table{font-size:11.5px}
@@ -1574,15 +1583,26 @@ function esc(s){
   });
 }
 
-// 移动端备注：站内居中弹窗（PC 端走行内输入，两套交互按端分开）
-async function openNoteDialog(id){
-  const rec = SERVER_CACHE.filter(function(r){ return String(r.id) === String(id); })[0];
-  if (!rec) return;
-  const cur = rec.note || '';
-  const val = await showPrompt('编辑备注（留空则清除）：', cur, {title:'编辑备注', okText:'保存'});
-  if (val === null) return;                 // 取消
-  const next = val.trim();
-  if (next === cur) return;                 // 没改动
+// 移动端备注：点 ＋/✎ 在记录行下方展开一行输入。
+// 输入框在页面流内（非 fixed 弹窗），字号 >=16px 避免 iOS focus 自动缩放，
+// 浏览器会把焦点元素滚进可视区，键盘不会遮住输入行。
+function toggleMobileNote(id){
+  const row = document.getElementById('nrow-' + id);
+  if (!row) return;
+  const opening = !row.classList.contains('open');
+  document.querySelectorAll('.note-row.open').forEach(function(x){
+    if (x !== row) x.classList.remove('open');
+  });
+  row.classList.toggle('open', opening);
+  if (opening){
+    const inp = document.getElementById('mnote-' + id);
+    if (inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  }
+}
+async function saveMobileNote(id){
+  const inp = document.getElementById('mnote-' + id);
+  if (!inp) return;
+  const next = inp.value.trim();
   try{
     const r = await api(API + '/api/note', {method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -1724,11 +1744,11 @@ function render(){
       const c = classify(r.sys, r.dia);
       const srcTags = srcsOf(r).map(k => `<span class="src-tag ${k}">${SRC_LABEL[k] || k}</span>`).join(' ');
       const hasNote = !!(r.note && r.note.trim());
-            // 备注分双端：PC 点文字行内输入，移动端点图标弹站内居中弹窗
+      // 备注分双端：PC 点文字行内输入，移动端展开一行输入（不用弹窗）
       const noteCell =
         `<span class="note-text pc-only cell-edit" onclick="editCell(${r.id},'note',this.parentNode)" title="点击改备注"`
         + (hasNote ? '' : ' style="color:var(--sub)"') + `>${hasNote ? esc(r.note) : '—'}</span>`
-        + `<button class="note-btn mob-only${hasNote ? ' has' : ''}" onclick="openNoteDialog(${r.id})"`
+        + `<button class="note-btn mob-only${hasNote ? ' has' : ''}" onclick="toggleMobileNote(${r.id})"`
         + ` title="${hasNote ? '查看或编辑备注' : '添加备注'}">${hasNote ? '✎' : '＋'}</button>`;
       // 删除按钮继续隐藏（防误操作）。要恢复：把 delRecord 那一格加回行模板，
       // 并在表头末尾补「操作」th；delRecord() 函数保留。
@@ -1740,11 +1760,12 @@ function render(){
         <td>${srcTags}</td>
         <td class="note-cell">${noteCell}</td>
       </tr>`
-      // 备注行：有内容就默认展开「展示」，点铅笔才进入编辑
-      + `<tr class="note-row${hasNote ? ' open' : ''}" id="nrow-${r.id}" data-has="${hasNote ? 1 : 0}"><td colspan="6">`
-        + `<div class="note-editor">`
-          + (hasNote ? `<div class="note-view"><span class="note-k">备注：</span>${esc(r.note)}</div>` : '')
-          + `</div>`
+      // 移动端备注：点 ＋/✎ 在本行下方展开一行输入（页面流内，不是 fixed 弹窗）
+      + `<tr class="note-row" id="nrow-${r.id}"><td colspan="6">`
+        + `<input type="text" class="mnote-input" id="mnote-${r.id}" value="${esc(r.note || '')}" placeholder="写点备注">`
+        + `<div class="mnote-acts">`
+          + `<button class="btn" onclick="saveMobileNote(${r.id})">保存</button>`
+          + `<button class="btn ghost" onclick="toggleMobileNote(${r.id})">取消</button>`
         + `</div>`
       + `</td></tr>`;
     }).join('');
