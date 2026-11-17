@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" media="(max-width:700px)" content="#0d0f12" />
 <title>高血压管理 · 免安装版（无需 Python）</title>
 <script>
 /* Chart.js v4.4.1 (MIT) - inlined for offline use */
@@ -425,6 +426,30 @@
     .chart-info .ci-avg{border-left:none;border-top:1px solid #2b313b;
       padding:6px 0 0;margin-top:6px;color:#8d97a5;font-size:11px}
     .chart-info .ci-avg-title{color:#8d97a5;font-size:11px}
+
+    /* 顶部/底部留白：Safari 用 html 背景色渲染状态栏与 overscroll 区域，
+       只给 body 设渐变不够，必须 html + body 都有实色兜底。 */
+    html{background:#0d0f12}
+    body{background-color:#0d0f12;background-attachment:fixed;min-height:100vh}
+    /* 蓝色心脏 -> 橙黑配色（小程序主色 #ff7a18 / 深色字 #1a1005） */
+    header .logo{display:flex;background:#ff7a18;color:#1a1005}
+    /* 分级标准说明：原 .lv-legend #fafbfe / .lv-table th #eef2fb 漏改 */
+    .lv-legend{background:#12161c;border-color:#2b313b}
+    .lv-legend summary{color:#c3cbd6}
+    .lv-table th,.lv-table td{background:#12161c;border-color:#2b313b;color:#d0d6df}
+    .lv-table th{color:#8d97a5}
+    .lv-notes li{color:#8d97a5}
+    .disclaimer{color:#6b7482}
+    /* 健康 AI 咨询：原 .ai-note #f0f4ff 与 details.ai-set #fafbfe 漏改 */
+    .ai-note{background:#12161c;border-color:#3a4350;color:#c3cbd6}
+    .ai-hint.good{color:#ffa257}
+    details.ai-set{background:#12161c;border-color:#2b313b}
+    details.ai-set summary{color:#ffa257}
+    .msg.user{background:#ff7a18;color:#1a1005}
+    .msg.sys{background:#3a2d1e;border-color:#8a5322;color:#ffb066}
+    .ai-quick button{background:#1a1e25;color:#c3cbd6;border-color:#5a6675}
+    .copyright{color:#8d97a5;border-color:#2b313b}
+    .copyright .cp-sub{color:#6b7482}
   }
 </style>
 </head>
@@ -1996,6 +2021,14 @@ function renderChart(arr){
     if (arr.length && !window.Chart) document.getElementById('chartFallback').style.display='block';
     if (meta) meta.textContent = ranged.length ? '' : chartMetaText(ranged, arr);
     if (meta) meta.classList.toggle('is-empty', ranged.length < 1);
+    // 空范围也要同步标题与横轴，否则会残留上一次档位的次数和日期，
+    // 看起来像「有数据却没展示」。
+    const emptyLabel = CHART_RANGE === '30' ? '30天' : (CHART_RANGE === '90' ? '90天' : '全部');
+    const extraM = document.getElementById('chartTitleExtra');
+    if (extraM) extraM.textContent = ' · ' + emptyLabel + ' · ' + ranged.length + ' 次';
+    const fM0 = document.getElementById('chartFromM'), tM0 = document.getElementById('chartToM');
+    if (fM0) fM0.textContent = '';
+    if (tM0) tM0.textContent = '';
     if (chart){ chart.destroy(); chart = null; }
     return;
   }
