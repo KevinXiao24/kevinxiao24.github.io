@@ -242,12 +242,12 @@
     /* 就地编辑：点哪个格子，那个格子就变成输入框 */
     .cell-edit{cursor:pointer}
     .cell-edit:hover{background:#f4f8ff}
-    td.editing{background:#fff !important;box-shadow:inset 0 0 0 2px var(--brand)}
+    td.editing{background:#fff !important}
     .ci{display:block;width:100%;min-width:0;padding:4px 6px;border:1px solid var(--line);
       border-radius:6px;font-size:12px;font-family:inherit;color:var(--ink);background:#fff;outline:none}
     .ci + .ci{margin-top:3px}
     .ci.num{display:inline-block;width:54px;text-align:center}
-    .ci:focus{border-color:var(--brand)}
+    .ci:focus{border-color:var(--line)}
     .ci-sep{margin:0 3px;color:var(--sub)}
 
     .note-editor textarea{min-height:62px;font-size:13px}
@@ -340,6 +340,15 @@
     background:#eef2fb;color:var(--brand-d);white-space:nowrap}
   .src-tag.omron{background:#fff2e3;color:#b35c00}
   .src-tag.manual{background:#f1f3f6;color:#6b7785}
+
+  /* 防自动缩放：iOS 聚焦 <16px 输入控件会主动放大页面。
+     所有输入控件统一 >=16px；不设置 maximum-scale / user-scalable=no，
+     缩放仍只能由用户主动双指手势触发。 */
+  html{-webkit-text-size-adjust:100%}
+  input,textarea,select,.ci,.mnote-input,.bp-dlg-input,.note-editor textarea{font-size:16px !important}
+  a,button,input,textarea,select,.btn,.tab,.rtab,.note-btn,.act-btn,
+  .bp-dlg-ok,.bp-dlg-cancel,.nav-link,.cell-edit{touch-action:manipulation}
+  input,textarea,select{max-width:100%}
 </style>
 </head>
 <body>
@@ -362,23 +371,23 @@
     <div class="grid">
       <div>
         <label for="date">测量日期</label>
-        <input type="date" id="date" />
+        <input autocomplete="off" type="date" id="date" />
       </div>
       <div>
         <label for="time">测量时间</label>
-        <input type="time" id="time" />
+        <input autocomplete="off" type="time" id="time" />
       </div>
       <div>
         <label for="sys">收缩压（高压 mmHg）</label>
-        <input type="number" id="sys" min="40" max="280" placeholder="如 135" inputmode="numeric" />
+        <input autocomplete="off" type="number" id="sys" min="40" max="280" placeholder="如 135" inputmode="numeric" />
       </div>
       <div>
         <label for="dia">舒张压（低压 mmHg）</label>
-        <input type="number" id="dia" min="20" max="180" placeholder="如 88" inputmode="numeric" />
+        <input autocomplete="off" type="number" id="dia" min="20" max="180" placeholder="如 88" inputmode="numeric" />
       </div>
       <div>
         <label for="pulse">心率（次/分，可选）</label>
-        <input type="number" id="pulse" min="30" max="220" placeholder="如 72" inputmode="numeric" />
+        <input autocomplete="off" type="number" id="pulse" min="30" max="220" placeholder="如 72" inputmode="numeric" />
       </div>
       <div>
         <label for="cond">状态（可选）</label>
@@ -392,7 +401,7 @@
       </div>
       <div class="full">
         <label for="note">备注（可选）</label>
-        <textarea id="note" placeholder="例如：昨晚睡得晚 / 今天有点紧张"></textarea>
+        <textarea autocomplete="off" id="note" placeholder="例如：昨晚睡得晚 / 今天有点紧张"></textarea>
       </div>
     </div>
     <div class="row">
@@ -459,8 +468,8 @@
       <button class="btn ghost" onclick="exportJSON()">导出备份</button>
       <button class="btn ghost" onclick="document.getElementById('importFile').click()">导入备份</button>
       <button class="btn tpl" onclick="downloadTemplate()">模板下载</button>
-      <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJSON(event)" />
-      <input type="file" id="importUni" accept=".csv,.txt,text/csv" style="display:none" onchange="importUniversal(event)" />
+      <input autocomplete="off" type="file" id="importFile" accept="application/json" style="display:none" onchange="importJSON(event)" />
+      <input autocomplete="off" type="file" id="importUni" accept=".csv,.txt,text/csv" style="display:none" onchange="importUniversal(event)" />
       <!-- 「清空全部」暂时隐藏，防误操作。要恢复：删掉下面的 style="display:none" 即可 -->
       <button class="btn warn" onclick="clearAll()" style="display:none">清空全部</button>
     </div>
@@ -566,16 +575,16 @@
         </div>
         <div class="full">
           <label for="aiBase">API Base URL</label>
-          <input id="aiBase" placeholder="https://api.deepseek.com/v1" />
+          <input autocomplete="off" id="aiBase" placeholder="https://api.deepseek.com/v1" />
         </div>
         <div class="full">
           <label for="aiModel">模型名（可手改；模型换代快，建议点「获取模型列表」）</label>
-          <input id="aiModel" list="aiModelList" placeholder="deepseek-v4-flash" />
+          <input autocomplete="off" id="aiModel" list="aiModelList" placeholder="deepseek-v4-flash" />
           <datalist id="aiModelList"></datalist>
         </div>
         <div class="full">
           <label for="aiKey">API Key</label>
-          <input id="aiKey" type="password" placeholder="sk-..." />
+          <input autocomplete="off" id="aiKey" type="password" placeholder="sk-..." />
         </div>
       </div>
       <div class="row">
@@ -587,7 +596,7 @@
     </details>
     <div class="chat" id="chatBox"><div class="msg sys">填写 API 设置后即可开始对话。可问：我最近血压趋势如何？生活上要注意什么？需要去医院吗？</div></div>
     <div class="ai-bar">
-      <input id="aiInput" placeholder="输入你的问题，回车发送…" onkeydown="if(event.key==='Enter')sendAi()" />
+      <input autocomplete="off" id="aiInput" placeholder="输入你的问题，回车发送…" onkeydown="if(event.key==='Enter')sendAi()" />
       <button class="btn" onclick="sendAi()">发送</button>
     </div>
     <div class="ai-quick">
@@ -1624,16 +1633,16 @@ function editCell(id, field, td){
 
   let inner = '';
   if (field === 'when'){
-    inner = '<input type="date" class="ci" id="ci-date" value="' + rec.date + '">'
-          + '<input type="time" class="ci" id="ci-time" value="' + rec.time + '">';
+    inner = '<input autocomplete="off" type="date" class="ci" id="ci-date" value="' + rec.date + '">'
+          + '<input autocomplete="off" type="time" class="ci" id="ci-time" value="' + rec.time + '">';
   } else if (field === 'bp'){
-    inner = '<input type="number" class="ci num" id="ci-sys" value="' + rec.sys + '">'
+    inner = '<input autocomplete="off" type="number" class="ci num" id="ci-sys" value="' + rec.sys + '">'
           + '<span class="ci-sep">/</span>'
-          + '<input type="number" class="ci num" id="ci-dia" value="' + rec.dia + '">';
+          + '<input autocomplete="off" type="number" class="ci num" id="ci-dia" value="' + rec.dia + '">';
   } else if (field === 'pulse'){
-    inner = '<input type="number" class="ci num" id="ci-pulse" value="' + (rec.pulse == null ? '' : rec.pulse) + '">';
+    inner = '<input autocomplete="off" type="number" class="ci num" id="ci-pulse" value="' + (rec.pulse == null ? '' : rec.pulse) + '">';
   } else if (field === 'note'){
-    inner = '<input type="text" class="ci" id="ci-note" value="' + esc(rec.note || '') + '" placeholder="写点备注">';
+    inner = '<input autocomplete="off" type="text" class="ci" id="ci-note" name="bpnote' + Date.now() + '" value="' + esc(rec.note || '') + '" placeholder="写点备注" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">';
   }
   td.classList.add('editing');
   td.innerHTML = inner;
@@ -1762,7 +1771,7 @@ function render(){
       </tr>`
       // 移动端备注：点 ＋/✎ 在本行下方展开一行输入（页面流内，不是 fixed 弹窗）
       + `<tr class="note-row" id="nrow-${r.id}"><td colspan="6">`
-        + `<input type="text" class="mnote-input" id="mnote-${r.id}" value="${esc(r.note || '')}" placeholder="写点备注">`
+        + `<input autocomplete="off" type="text" class="mnote-input" id="mnote-${r.id}" name="bpmnote${r.id}" value="${esc(r.note || '')}" placeholder="写点备注" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">`
         + `<div class="mnote-acts">`
           + `<button class="btn" onclick="saveMobileNote(${r.id})">保存</button>`
           + `<button class="btn ghost" onclick="toggleMobileNote(${r.id})">取消</button>`
@@ -2281,7 +2290,7 @@ async function sendAi(){
       <div class="bp-dlg-icon" id="bpDlgIcon">✓</div>
       <h3 class="bp-dlg-title" id="bpDlgTitle">提示</h3>
       <p class="bp-dlg-body" id="bpDlgBody"></p>
-      <input class="bp-dlg-input" id="bpDlgInput" type="text" hidden>
+      <input autocomplete="off" class="bp-dlg-input" id="bpDlgInput" type="text" hidden autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">
       <div class="bp-dlg-acts">
         <button class="bp-dlg-cancel" id="bpDlgCancel" type="button" hidden>取消</button>
         <button class="bp-dlg-ok" id="bpDlgOk" type="button">确定</button>
