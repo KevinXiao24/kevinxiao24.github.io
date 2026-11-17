@@ -1574,6 +1574,25 @@ function esc(s){
   });
 }
 
+// 移动端备注：站内居中弹窗（PC 端走行内输入，两套交互按端分开）
+async function openNoteDialog(id){
+  const rec = SERVER_CACHE.filter(function(r){ return String(r.id) === String(id); })[0];
+  if (!rec) return;
+  const cur = rec.note || '';
+  const val = await showPrompt('编辑备注（留空则清除）：', cur, {title:'编辑备注', okText:'保存'});
+  if (val === null) return;                 // 取消
+  const next = val.trim();
+  if (next === cur) return;                 // 没改动
+  try{
+    const r = await api(API + '/api/note', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id: id, note: next})});
+    const j = await r.json();
+    if (!r.ok){ showNotice('保存失败：' + (j.error || '未知错误')); return; }
+  }catch(e){ showNotice('保存失败：' + e.message); return; }
+  await reload();
+}
+
 // ===== 本地版：点哪个格子就改哪个（就地编辑）=====
 let CELL = null;
 
@@ -1705,11 +1724,11 @@ function render(){
       const c = classify(r.sys, r.dia);
       const srcTags = srcsOf(r).map(k => `<span class="src-tag ${k}">${SRC_LABEL[k] || k}</span>`).join(' ');
       const hasNote = !!(r.note && r.note.trim());
-      // 备注单元格两套形态：PC 端是文字（点一下弹窗编辑），移动端是加号图标
+            // 备注分双端：PC 点文字行内输入，移动端点图标弹站内居中弹窗
       const noteCell =
-        `<span class="note-text pc-only"`
+        `<span class="note-text pc-only cell-edit" onclick="editCell(${r.id},'note',this.parentNode)" title="点击改备注"`
         + (hasNote ? '' : ' style="color:var(--sub)"') + `>${hasNote ? esc(r.note) : '—'}</span>`
-        + `<button class="note-btn mob-only${hasNote ? ' has' : ''}"`
+        + `<button class="note-btn mob-only${hasNote ? ' has' : ''}" onclick="openNoteDialog(${r.id})"`
         + ` title="${hasNote ? '查看或编辑备注' : '添加备注'}">${hasNote ? '✎' : '＋'}</button>`;
       // 删除按钮继续隐藏（防误操作）。要恢复：把 delRecord 那一格加回行模板，
       // 并在表头末尾补「操作」th；delRecord() 函数保留。
@@ -1719,7 +1738,7 @@ function render(){
         <td class="cell-edit" onclick="editCell(${r.id},'pulse',this)" title="点击改心率">${r.pulse??'—'}</td>
         <td><span class="tag" style="background:rgb(${c.rgb})">${c.name.split('（')[0]}</span></td>
         <td>${srcTags}</td>
-        <td class="note-cell cell-edit" onclick="editCell(${r.id},'note',this)" title="点击改备注">${noteCell}</td>
+        <td class="note-cell">${noteCell}</td>
       </tr>`
       // 备注行：有内容就默认展开「展示」，点铅笔才进入编辑
       + `<tr class="note-row${hasNote ? ' open' : ''}" id="nrow-${r.id}" data-has="${hasNote ? 1 : 0}"><td colspan="6">`
