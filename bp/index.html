@@ -129,7 +129,6 @@
   .rtab.active{background:var(--brand);border-color:var(--brand);color:#fff}
   .rtab:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   .chart-meta{font-size:11.5px;color:var(--sub);margin:0 0 8px;min-height:18px}
-  .chart-axis{display:flex;justify-content:space-between;font-size:11.5px;color:var(--sub);margin:4px 2px 0}
   /* 站内提示弹窗：替代浏览器原生 alert（原生弹窗带域名标题、样式不可控） */
   .bp-mask{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
     padding:20px;background:rgba(17,24,39,.45)}
@@ -238,17 +237,6 @@
     .act-btn:hover{border-color:#cfdcf5;background:#f2f6fd}
     .act-btn.del:hover{border-color:#f3cfcb;background:#fdeaea}
 
-    /* 就地编辑：点哪个格子，那个格子就变成输入框 */
-    .cell-edit{cursor:pointer}
-    .cell-edit:hover{background:#f4f8ff}
-    td.editing{background:#fff !important}
-    .ci{display:block;width:100%;min-width:0;padding:4px 6px;border:1px solid var(--line);
-      border-radius:6px;font-size:12px;font-family:inherit;color:var(--ink);background:#fff;outline:none}
-    .ci + .ci{margin-top:3px}
-    .ci.num{display:inline-block;width:54px;text-align:center}
-    .ci:focus{border-color:var(--line)}
-    .ci-sep{margin:0 3px;color:var(--sub)}
-
     .note-editor textarea{min-height:62px;font-size:13px}
     .note-acts{display:flex;gap:8px;margin-top:8px}
     .note-acts .btn{flex:1;padding:8px;font-size:13px}
@@ -341,7 +329,14 @@
   input,textarea,select,.bp-dlg-input,.ci,.note-editor textarea{font-size:16px !important}
   a,button,input,textarea,select,.btn,.tab,.rtab,.note-btn,.act-btn,
   .bp-dlg-ok,.bp-dlg-cancel,.nav-link,.cell-edit{touch-action:manipulation}
-  input,textarea,select{max-width:100%}
+  input,textarea,select,.bp-dlg-input{max-width:100%}
+  /* 桌面版备注行内编辑：点文字直接变输入框（无高亮蓝框） */
+  .cell-edit{cursor:pointer}
+  .cell-edit:hover{background:#f4f8ff}
+  td.editing{background:#fff}
+  .ci{display:block;width:100%;min-width:0;padding:6px 8px;border:1px solid var(--line);
+    border-radius:8px;font-size:16px;font-family:inherit;color:var(--ink);background:#fff;outline:none}
+  .ci:focus{border-color:var(--line)}
 </style>
 </head>
 <body>
@@ -446,7 +441,6 @@
     </div>
     <div class="chart-meta" id="chartMeta"></div>
     <div class="chart-box"><canvas id="chart"></canvas></div>
-    <div class="chart-axis" id="chartAxis"><span id="chartFrom"></span><span id="chartTo"></span></div>
     <!-- 选中某个点的详情。放在图表「外面」，
          这样手机上手指按在图上时，信息也不会被手指盖住 -->
     <div class="chart-info" id="chartInfo">点一下图上的曲线，查看该次测量的具体数值</div>
@@ -667,7 +661,19 @@
   function readAll() {
     try {
       var arr = JSON.parse(localStorage.getItem(KEY) || '[]');
-      return Array.isArray(arr) ? arr : [];
+      if (!Array.isArray(arr)) return [];
+      // 历史数据里 sys/dia/pulse 可能被写成字符串（旧版就地编辑或导入 JSON），
+      // 若不转数字，统计 reduce 会变成字符串拼接，显示 4.1e41 这类异常值。
+      return arr.map(function (r) {
+        if (!r || typeof r !== 'object') return r;
+        if (r.sys !== undefined && r.sys !== null && r.sys !== '') r.sys = Number(r.sys) || 0;
+        if (r.dia !== undefined && r.dia !== null && r.dia !== '') r.dia = Number(r.dia) || 0;
+        if (r.pulse !== undefined && r.pulse !== null && r.pulse !== '') {
+          var p = Number(r.pulse);
+          r.pulse = isNaN(p) ? null : p;
+        }
+        return r;
+      });
     } catch (e) { return []; }
   }
 
@@ -1661,83 +1667,9 @@ async function saveNoteInline(id){
 }
 
 
-// ===== 本地版：点哪个格子就改哪个（就地编辑）=====
-let CELL = null;
 
-function editCell(id, field, td){
-  if (CELL) return;                         // 一次只编辑一个格子
-  const rec = SERVER_CACHE.filter(function(r){ return String(r.id) === String(id); })[0];
-  if (!rec) return;
-  CELL = { id: id, field: field, td: td, old: td.innerHTML };
 
-  let inner = '';
-  if (field === 'when'){
-    inner = '<input autocomplete="off" type="date" class="ci" id="ci-date" value="' + rec.date + '">'
-          + '<input autocomplete="off" type="time" class="ci" id="ci-time" value="' + rec.time + '">';
-  } else if (field === 'bp'){
-    inner = '<input autocomplete="off" type="number" class="ci num" id="ci-sys" value="' + rec.sys + '">'
-          + '<span class="ci-sep">/</span>'
-          + '<input autocomplete="off" type="number" class="ci num" id="ci-dia" value="' + rec.dia + '">';
-  } else if (field === 'pulse'){
-    inner = '<input autocomplete="off" type="number" class="ci num" id="ci-pulse" value="' + (rec.pulse == null ? '' : rec.pulse) + '">';
-  } else if (field === 'note'){
-    inner = '<input autocomplete="off" type="text" class="ci" id="ci-note" name="bpnote' + Date.now() + '" value="' + esc(rec.note || '') + '" placeholder="写点备注" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">';
-  }
-  td.classList.add('editing');
-  td.innerHTML = inner;
 
-  const inputs = td.getElementsByTagName('input');
-  for (let i = 0; i < inputs.length; i++){
-    const inp = inputs[i];
-    inp.addEventListener('keydown', function(e){
-      if (e.key === 'Enter'){ e.preventDefault(); commitCell(); }
-      else if (e.key === 'Escape'){ e.preventDefault(); cancelCell(); }
-    });
-    inp.addEventListener('blur', function(){
-      setTimeout(function(){
-        if (CELL && CELL.td === td && !td.contains(document.activeElement)) commitCell();
-      }, 150);
-    });
-  }
-  if (inputs[0]) inputs[0].focus();
-}
-
-function cancelCell(){
-  const c = CELL;
-  if (!c) return;
-  CELL = null;
-  c.td.innerHTML = c.old;
-  c.td.classList.remove('editing');
-}
-
-async function commitCell(){
-  const c = CELL;
-  if (!c) return;
-  const td = c.td, field = c.field, id = c.id;
-  const g = function(i){ const el = document.getElementById(i); return el ? el.value : ''; };
-  const rec = SERVER_CACHE.filter(function(r){ return String(r.id) === String(id); })[0];
-  if (!rec){ CELL = null; await reload(); return; }
-
-  const payload = {
-    id: id,
-    date:  field === 'when'  ? g('ci-date') : rec.date,
-    time:  field === 'when'  ? (g('ci-time') || '00:00') : rec.time,
-    sys:   field === 'bp'    ? g('ci-sys')  : rec.sys,
-    dia:   field === 'bp'    ? g('ci-dia')  : rec.dia,
-    pulse: field === 'pulse' ? g('ci-pulse') : rec.pulse,
-    cond:  rec.cond || '',
-    note:  field === 'note'  ? g('ci-note') : rec.note
-  };
-  CELL = null;
-  try{
-    const r = await api(API + '/api/update', {method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload)});
-    const j = await r.json();
-    if (!r.ok){ showNotice('保存失败：' + (j.error || '未知错误')); await reload(); return; }
-  }catch(e){ showNotice('保存失败：' + e.message); }
-  await reload();
-}
 
 function render(){
   updateTabCounts();
@@ -1792,23 +1724,20 @@ function render(){
       const c = classify(r.sys, r.dia);
       const srcTags = srcsOf(r).map(k => `<span class="src-tag ${k}">${SRC_LABEL[k] || k}</span>`).join(' ');
       const hasNote = !!(r.note && r.note.trim());
-      // 备注分双端：PC 点文字行内输入，移动端展开一行输入（不用弹窗）
+      // 备注分双端：PC 点文字直接行内输入（不用弹窗），移动端点图标展开输入
       const noteCell =
         `<span class="note-text pc-only cell-edit" onclick="editNoteInline(${r.id},this.parentNode)" title="点击改备注"`
         + (hasNote ? '' : ' style="color:var(--sub)"') + `>${hasNote ? esc(r.note) : '—'}</span>`
         + `<button class="note-btn mob-only${hasNote ? ' has' : ''}" onclick="toggleNoteRow(${r.id})"`
         + ` title="${hasNote ? '查看或编辑备注' : '添加备注'}">${hasNote ? '✎' : '＋'}</button>`;
-      // 删除按钮继续隐藏（防误操作）。要恢复：把 delRecord 那一格加回行模板，
-      // 并在表头末尾补「操作」th；delRecord() 函数保留。
       return `<tr class="data-row">
-        <td class="cell-edit" onclick="editCell(${r.id},'when',this)" title="点击改日期时间">${r.date}<span class="tm">${r.time}</span></td>
-        <td class="cell-edit" onclick="editCell(${r.id},'bp',this)" title="点击改血压"><b>${r.sys}</b>/${r.dia}</td>
-        <td class="cell-edit" onclick="editCell(${r.id},'pulse',this)" title="点击改心率">${r.pulse??'—'}</td>
+        <td>${r.date}<span class="tm">${r.time}</span></td>
+        <td><b>${r.sys}</b>/${r.dia}</td>
+        <td>${r.pulse??'—'}</td>
         <td><span class="tag" style="background:rgb(${c.rgb})">${c.name.split('（')[0]}</span></td>
         <td>${srcTags}</td>
         <td class="note-cell">${noteCell}</td>
       </tr>`
-      // 移动端备注：点 ＋/✎ 在本行下方展开一行输入（页面流内，不是 fixed 弹窗）
       // 备注行：有内容就默认展开「展示」，点铅笔才进入编辑
       + `<tr class="note-row${hasNote ? ' open' : ''}" id="nrow-${r.id}" data-has="${hasNote ? 1 : 0}"><td colspan="6">`
         + `<div class="note-editor">`
@@ -1962,13 +1891,11 @@ function renderChart(arr){
   const meta = document.getElementById('chartMeta');
   const chartBox = document.querySelector('#chartCard .chart-box');
   const infoEl = document.getElementById('chartInfo');
-  const axisEl = document.getElementById('chartAxis');
   if (!window.Chart || ranged.length < 1){
     chartCard.style.display = arr.length ? '' : 'none';
     // 空范围时连画布容器一起收起，否则会留下 280px 空白，看起来像图表坏了
     if (chartBox) chartBox.style.display = 'none';
     if (infoEl) infoEl.style.display = 'none';
-    if (axisEl) axisEl.style.display = 'none';
     if (arr.length && !window.Chart) document.getElementById('chartFallback').style.display='block';
     if (meta) meta.textContent = ranged.length ? '' : chartMetaText(ranged, arr);
     if (chart){ chart.destroy(); chart = null; }
@@ -1980,14 +1907,6 @@ function renderChart(arr){
   document.getElementById('chartFallback').style.display='none';
   const sorted = ranged.slice().sort((a,b)=> (a.date+a.time)<(b.date+b.time)?-1:1);
   if (meta) meta.textContent = chartMetaText(sorted, arr);
-  // 横轴起止日期：参考小程序 .chart-axis，左右两端展示选中数据的首末日期
-  if (axisEl){
-    const sameDay = sorted.length > 1 && sorted[0].date === sorted[sorted.length-1].date;
-    const short = r => String(r.date || '').slice(5) + (sameDay ? ' ' + String(r.time || '') : '');
-    document.getElementById('chartFrom').textContent = short(sorted[0]);
-    document.getElementById('chartTo').textContent = short(sorted[sorted.length-1]);
-    axisEl.style.display = '';
-  }
   const labels = sorted.map(r=>`${r.date} ${r.time}`);
   const sysData = sorted.map(r=>r.sys);
   const diaData = sorted.map(r=>r.dia);
