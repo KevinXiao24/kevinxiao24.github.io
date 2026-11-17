@@ -337,6 +337,95 @@
   .ci{display:block;width:100%;min-width:0;padding:6px 8px;border:1px solid var(--line);
     border-radius:8px;font-size:16px;font-family:inherit;color:var(--ink);background:#fff;outline:none}
   .ci:focus{border-color:var(--line)}
+
+  /* 移动端专用节点：PC 默认隐藏 */
+  .ch-extra,.chart-legend-m,.chart-axis-m{display:none}
+
+  /* ===== 移动端深色主题：色值逐项取自小程序 main.wxss =====
+     .page #131619→#0d0f12 / .card #1a1e25 #2b313b / 主字 #f2f4f7
+     次字 #8d97a5 / 弱字 #6b7482 / 橙 #ff7a18 / 折线 #ff5a4e #4a9eff */
+  @media(max-width:700px){
+    body{background:linear-gradient(180deg,#131619 0%,#0d0f12 100%);color:#f2f4f7}
+    .card,.stat,.bp-dialog{background:#1a1e25;border-color:#2b313b;color:#f2f4f7;
+      box-shadow:none !important}
+    header h1,.card h2,.stat .v,.status .info .lv,.bp-dlg-title,
+    .chart-info .ci-item b,.hist-table td,.lv-table td,.note-view,
+    .hist-table td b,.chart-info .ci-main{color:#f2f4f7}
+    header p,.stat .k,.status .info .meta,.status .info .advice,
+    .chart-info .ci-date,.chart-info .ci-avg-title,.lv-notes,.lv-notes li,
+    .disclaimer,.copyright,.copyright .cp-line,.copyright .cp-sub,
+    .import-hint,.ai-hint,.ai-note,.empty,.chart-info.idle,
+    .note-view .note-k,.hist-table .tm,th,label{color:#8d97a5}
+    .card h2 .dot{background:#ff7a18}
+    /* 表单：小程序 .inp 取值 */
+    input,textarea,select,.ci,.bp-dlg-input,.note-editor textarea{
+      background:#0d0f12;border-color:#2b313b;color:#f2f4f7}
+    input:focus,select:focus,textarea:focus,.ci:focus,.bp-dlg-input:focus{border-color:#ff7a18}
+    input[type=time]::-webkit-date-and-time-value{color:#f2f4f7}
+    /* 按钮：小程序 2D 实色规范（禁阴影/滤镜/渐变/位移） */
+    .btn,.tab,.rtab,.note-btn,.act-btn,.bp-dlg-ok,.bp-dlg-cancel,
+    .ai-quick button,.del,.nav-link,.back-portal{
+      background:#1a1e25;border-color:#5a6675;color:#c3cbd6;
+      box-shadow:none !important;filter:none !important;transform:none !important}
+    .btn:hover,.tab:hover,.rtab:hover,.note-btn:hover,.act-btn:hover,
+    .bp-dlg-ok:hover,.bp-dlg-cancel:hover,.ai-quick button:hover,.del:hover,
+    .nav-link:hover,.back-portal:hover{
+      background:#3a4350;border-color:#7a8797;color:#f2f4f7;
+      box-shadow:none !important;filter:none !important;transform:none !important}
+    .btn,.btn.tpl,.btn.warn,.bp-dlg-ok{background:#ff7a18;border-color:#ff7a18;
+      color:#1a1005;font-weight:700}
+    .btn.ghost,.bp-dlg-cancel{background:#2a2118;border-color:#8a5322;color:#ffa257;font-weight:600}
+    .tab.active,.rtab.active{background:#ff7a18;border-color:#ff7a18;color:#1a1005}
+    .note-btn{background:#1b2028;border-color:#5a6675;color:#ffa257}
+    .note-btn.has{background:#3a2a16;border-color:#ff7a18;color:#ffb066}
+    .nav-link,.back-portal{color:#ff9a45}
+    .nav-link.danger{color:#ff8a6a;border-color:#6a3636}
+    /* 表格 / 标签 / 卡片 */
+    .stat{background:#12161c}
+    .hist-table th,.hist-table td,.lv-table th,.lv-table td{border-color:#262c35}
+    .hist-table th,.lv-table th{background:#12161c;color:#8d97a5}
+    .hist-table .tag,.lv-badge{color:#fff}
+    .src-tag{background:#1b2028;color:#c3cbd6}
+    .src-tag.omron{background:#3a2a16;color:#ffb066}
+    .src-tag.manual{background:#262c35;color:#b0bac7}
+    .alert.red{background:#3a2a16;border-color:#6a3636;color:#ffb066}
+    .alert.orange{background:#3a2d1e;border-color:#8a5322;color:#ffb066}
+    .alert.green{background:#1b2028;border-color:#3a4350;color:#c3cbd6}
+    .import-hint{background:#12161c;border-color:#3a4350}
+    .lv-legend,.lv-legend summary{color:#c3cbd6}
+    .note-row td{background:#12161c}
+    .note-text{color:#f2f4f7;border-bottom-color:#5a6675}
+    .cell-edit:hover{background:#2a303b}
+    td.editing{background:#1a1e25}
+    .chart-fallback{color:#8d97a5}
+    /* 弹层 */
+    .bp-mask{background:rgba(0,0,0,.72)}
+    .bp-dialog{background:#1a1e25;border-color:#2b313b}
+    .bp-dlg-body{color:#8d97a5}
+    .bp-dlg-icon{background:#2a303b;color:#ff9a45}
+    /* AI 区 */
+    .chat,.msg,.msg.user,.msg.ai,.msg.sys,.ai-bar,.ai-quick,.thinking,
+    details.ai-set,details.ai-set summary{background:#12161c;border-color:#2b313b;color:#c3cbd6}
+    /* ===== 血压趋势板块：对齐小程序 ===== */
+    .chart-box{height:190px}
+    #chartMeta{display:none}
+    #chartMeta.is-empty{display:block;background:#2a303b;border:1px solid #5a6675;
+      border-radius:6px;padding:22px 10px;text-align:center;color:#c3cbd6;font-size:11.5px}
+    .ch-extra{display:inline;color:#ff9a45;font-size:12px;font-weight:600}
+    .chart-legend-m{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 6px}
+    .chart-legend-m .cl-item{display:flex;align-items:center;gap:4px;font-size:10.5px;color:#c3cbd6}
+    .chart-legend-m .cl-item i{display:block;width:14px;height:3px;border-radius:2px}
+    .chart-legend-m .cl-tip{font-size:10px;color:#6b7482;margin-left:auto}
+    .chart-axis-m{display:flex;justify-content:space-between;font-size:10px;
+      color:#6b7482;margin:2px 2px 0}
+    .chart-info{background:#0d0f12;border-color:#2b313b;margin-top:9px;padding:8px 9px}
+    .chart-info .ci-date{font-size:12px;color:#f2f4f7}
+    .chart-info .ci-item{color:#8d97a5}
+    .chart-info .ci-main,.chart-info .ci-avg{flex:0 0 100%;width:100%}
+    .chart-info .ci-avg{border-left:none;border-top:1px solid #2b313b;
+      padding:6px 0 0;margin-top:6px;color:#8d97a5;font-size:11px}
+    .chart-info .ci-avg-title{color:#8d97a5;font-size:11px}
+  }
 </style>
 </head>
 <body>
@@ -433,14 +522,22 @@
 
   <!-- 趋势图 -->
   <section class="card" id="chartCard" style="display:none">
-    <h2><span class="dot"></span>血压趋势</h2>
+    <h2><span class="dot"></span>血压趋势<span class="ch-extra" id="chartTitleExtra"></span></h2>
     <div class="range-tabs">
       <button class="rtab" id="rtab-30" onclick="switchChartRange('30')">30天</button>
       <button class="rtab" id="rtab-90" onclick="switchChartRange('90')">90天</button>
       <button class="rtab active" id="rtab-all" onclick="switchChartRange('all')">全部</button>
     </div>
     <div class="chart-meta" id="chartMeta"></div>
+    <!-- 移动端图例：复用小程序 main.wxml 的 chart-legend 结构 -->
+    <div class="chart-legend-m" id="chartLegendM">
+      <span class="cl-item"><i style="background:#ff5a4e"></i>收缩压</span>
+      <span class="cl-item"><i style="background:#4a9eff"></i>舒张压</span>
+      <span class="cl-tip">纵轴 60–180 mmHg · 横轴按真实日期 · 可滑动</span>
+    </div>
     <div class="chart-box"><canvas id="chart"></canvas></div>
+    <!-- 移动端横轴起止日期：复用小程序 chart-axis -->
+    <div class="chart-axis-m" id="chartAxisM"><span id="chartFromM"></span><span id="chartToM"></span></div>
     <!-- 选中某个点的详情。放在图表「外面」，
          这样手机上手指按在图上时，信息也不会被手指盖住 -->
     <div class="chart-info" id="chartInfo">点一下图上的曲线，查看该次测量的具体数值</div>
@@ -1898,6 +1995,7 @@ function renderChart(arr){
     if (infoEl) infoEl.style.display = 'none';
     if (arr.length && !window.Chart) document.getElementById('chartFallback').style.display='block';
     if (meta) meta.textContent = ranged.length ? '' : chartMetaText(ranged, arr);
+    if (meta) meta.classList.toggle('is-empty', ranged.length < 1);
     if (chart){ chart.destroy(); chart = null; }
     return;
   }
@@ -1907,6 +2005,7 @@ function renderChart(arr){
   document.getElementById('chartFallback').style.display='none';
   const sorted = ranged.slice().sort((a,b)=> (a.date+a.time)<(b.date+b.time)?-1:1);
   if (meta) meta.textContent = chartMetaText(sorted, arr);
+  if (meta) meta.classList.remove('is-empty');
   const labels = sorted.map(r=>`${r.date} ${r.time}`);
   const sysData = sorted.map(r=>r.sys);
   const diaData = sorted.map(r=>r.dia);
@@ -1921,14 +2020,31 @@ function renderChart(arr){
   const ctx = document.getElementById('chart').getContext('2d');
   if (chart) chart.destroy();
 
-  chart = new Chart(ctx, {
-    type:'line',
-    data:{ labels,
-      datasets:[
+  // 移动端标题/横轴日期：复用小程序 _buildChart 的 label / from / to
+  const rangeLabel = CHART_RANGE === '30' ? '30天' : (CHART_RANGE === '90' ? '90天' : '全部');
+  const extra = document.getElementById('chartTitleExtra');
+  if (extra) extra.textContent = ' · ' + rangeLabel + ' · ' + sorted.length + ' 次';
+  const sameDayM = sorted.length > 1 && sorted[0].date === sorted[sorted.length-1].date;
+  const shortM = r => String(r.date || '').slice(5) + (sameDayM ? ' ' + String(r.time || '') : '');
+  const fM = document.getElementById('chartFromM'), tM = document.getElementById('chartToM');
+  if (fM) fM.textContent = shortM(sorted[0]);
+  if (tM) tM.textContent = shortM(sorted[sorted.length-1]);
+
+  // PC 端沿用原配置（一字未改）；移动端逐项照搬小程序 _paint 参数
+  const isMobileChart = window.innerWidth <= 700;
+  const pcDatasets = [
         {label:'收缩压', data:sysData, borderColor:'#d83434', backgroundColor:'rgba(216,52,52,.08)', tension:.3, fill:true, pointRadius:3},
         {label:'舒张压', data:diaData, borderColor:'#2f6df0', backgroundColor:'rgba(47,109,240,.08)', tension:.3, fill:true, pointRadius:3}
-      ]},
-    options:{ responsive:true, maintainAspectRatio:false,
+      ];
+  const mobileDatasets = [
+        {label:'收缩压', data:sysData, borderColor:'#ff5a4e', backgroundColor:'#ff5a4e',
+         borderWidth:2, borderJoinStyle:'round', borderCapStyle:'round', tension:0, fill:false,
+         pointRadius: sorted.length <= 40 ? 2 : 0, pointHoverRadius:4, pointHoverBackgroundColor:'#ffffff'},
+        {label:'舒张压', data:diaData, borderColor:'#4a9eff', backgroundColor:'#4a9eff',
+         borderWidth:2, borderJoinStyle:'round', borderCapStyle:'round', tension:0, fill:false,
+         pointRadius: sorted.length <= 40 ? 2 : 0, pointHoverRadius:4, pointHoverBackgroundColor:'#ffffff'}
+      ];
+  const pcOptions = { responsive:true, maintainAspectRatio:false,
       // 触摸设备上点按要更准一些
       interaction:{ mode:'index', intersect:false },
       plugins:{ legend:{position:'top'},
@@ -1945,8 +2061,40 @@ function renderChart(arr){
             grid:{ color:'rgba(31,41,51,.09)', drawTicks:false },
             title:{display:true,text:'mmHg'} },
         x:{ ticks:{ display:false }, grid:{ display:false } }
-      } }
+      } };
+  // 小程序：线宽 2、无填充、>40 条不画点、纵轴 60–180 五等分、网格 #2b313b、
+  // tooltip 关掉（详情走图表下方信息条，避免黑色浮层挡住折线）
+  const mobileOptions = { responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{display:false}, tooltip:{enabled:false} },
+      onClick:(evt, elements)=> showChartPoint(elements, sorted),
+      onHover:(evt, elements)=> showChartPoint(elements, sorted),
+      scales:{
+        y:{ min:60, max:180,
+            ticks:{ stepSize:30, color:'#6b7482', font:{size:10} },
+            grid:{ color:'#2b313b', drawTicks:false },
+            title:{display:false} },
+        x:{ ticks:{ display:false }, grid:{ display:false } }
+      } };
+
+  chart = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets: isMobileChart ? mobileDatasets : pcDatasets },
+    options: isMobileChart ? mobileOptions : pcOptions
   });
+
+  // 视口跨越 700px 时重绘一次，保证 PC 白色 / 移动深色两套配置切换正确
+  if (!window.__bpChartResizeBound){
+    window.__bpChartResizeBound = true;
+    window.__bpChartLastMobile = isMobileChart;
+    window.addEventListener('resize', function(){
+      const now = window.innerWidth <= 700;
+      if (now !== window.__bpChartLastMobile){
+        window.__bpChartLastMobile = now;
+        renderChart(visibleRecords());
+      }
+    });
+  }
 }
 
 // 端点地址既可能是「Base URL」，也可能是已经写完整的 /chat/completions URL
