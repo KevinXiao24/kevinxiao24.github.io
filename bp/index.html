@@ -562,8 +562,8 @@
     <div class="chart-meta" id="chartMeta"></div>
     <!-- 移动端图例：复用小程序 main.wxml 的 chart-legend 结构 -->
     <div class="chart-legend-m" id="chartLegendM">
-      <span class="cl-item"><i style="background:#ff5a4e"></i>收缩压</span>
-      <span class="cl-item"><i style="background:#4a9eff"></i>舒张压</span>
+      <span class="cl-item" style="color:#ff5a4e"><i style="background:#ff5a4e"></i>收缩压</span>
+      <span class="cl-item" style="color:#4a9eff"><i style="background:#4a9eff"></i>舒张压</span>
       <span class="cl-tip">纵轴 60–180 mmHg · 横轴按真实日期 · 可滑动</span>
     </div>
     <div class="chart-box"><canvas id="chart"></canvas></div>
@@ -1905,7 +1905,7 @@ let CHART_SEL_IDX = -1;   // 信息条当前显示的是第几个点
 // 「近 7 日」= 已经完全结束的 7 个自然日：X = 1..7，不含今天（X=0）。
 // 例如今天 11/16 → 只统计 11/09~11/15。今天还没结束、晚上可能继续测，
 // 含今天会让均值在一天内不停变动；这里只统计不再变化的数据。
-// ⛔ 与趋势图 30/90 天不同：展示分档仍含今天（X >= 0）。不受标签卡筛选影响。
+// 趋势图 30/90 天分档同样从昨天起算、不含今天（1 ≤ X ≤ days），与本处一致。
 function recent7AvgHtml(){
   const today = todayStartMs();
   const rows = load().filter(r=>{
@@ -1947,7 +1947,7 @@ function showChartPoint(elements, sorted){
     // 小程序 chart-info：日期+分级名 / 数值一行；近 7 日均值在卡片外
     box.innerHTML =
       '<div class="ci-d-m">' + r.date + ' ' + r.time + ' · ' + classify(r.sys, r.dia).name + '</div>' +
-      '<div class="ci-r-m">收缩压 ' + r.sys + ' / 舒张压 ' + r.dia + ' mmHg · 心率 ' + (r.pulse ?? '—') + '</div>';
+      '<div class="ci-r-m"><span style="color:#ff5a4e">收缩压</span> ' + r.sys + ' / <span style="color:#4a9eff">舒张压</span> ' + r.dia + ' mmHg · 心率 ' + (r.pulse ?? '—') + '</div>';
     // 触发自定义 plugin 重绘选中竖线 / 白点 / sys-dia 浮窗
     if (typeof chart !== 'undefined' && chart) chart.update('none');
     return;
@@ -1965,8 +1965,8 @@ function showChartPoint(elements, sorted){
 
 
 // 趋势图时间范围：30 天 / 90 天 / 全部。按真实日历天数过滤，
-// 以今天 00:00 为锚点，默认「全部」不截断。分档含今天（X >= 0）；
-// ⛔ 「近 7 日均值」是统计值、不含今天（X >= 1），两者不要混用。
+// 以今天 00:00 为锚点，默认「全部」不截断。分档从昨天起算、不含今天（X >= 1）；
+// 「近 7 日均值」同为 1 ≤ X ≤ 7，两者共用同一度量维度。
 let CHART_RANGE = 'all';
 function switchChartRange(k){
   if (!k || k === CHART_RANGE) return;
@@ -2009,14 +2009,14 @@ function daysFromToday(r, todayMs){
 function rangedRecords(arr){
   if (CHART_RANGE === 'all') return arr;
   const days = CHART_RANGE === '30' ? 30 : 90;
-  // X = 每条记录距今天的天数。三档只按天数判断：
-  // 「30天」= X <= 30、「90天」= X <= 90、「全部」不限。
+  // X = 每条记录距今天的自然日天数；从昨天起算（X >= 1），不含今天。
+  // 「30天」= 1 <= X <= 30、「90天」= 1 <= X <= 90、「全部」不限。
   // 与记录条数无关，锚点是「天」，不是「条数」。
   const today = todayStartMs();
   return arr.filter(function(r){
     const X = daysFromToday(r, today);
     // 时间解析失败的记录不擅自丢掉
-    return isNaN(X) || (X >= 0 && X <= days);
+    return isNaN(X) || (X >= 1 && X <= days);
   });
 }
 function chartMetaText(sorted, all){
@@ -2189,7 +2189,10 @@ function renderChart(arr){
             grid:{ color:'#2b313b', drawTicks:false },
             title:{display:false} },
         // 小程序：横轴按真实时间戳比例（不再是等距分类轴）
-        x:{ type:'linear', ticks:{ display:false }, grid:{ display:false } }
+        x:{ type:'linear',
+            min: mobileTs.length ? mobileTs[0] : undefined,
+            max: mobileTs.length ? mobileTs[mobileTs.length-1] : undefined,
+            ticks:{ display:false }, grid:{ display:false } }
       } };
 
   chart = new Chart(ctx, {
